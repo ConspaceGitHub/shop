@@ -14,6 +14,7 @@ interface ProductDetail {
   sizeInfo: string | null;
   price: number;
   stock: number;
+  imageUrl: string;
 }
 
 const difficultyLabel: Record<string, string> = {
@@ -33,13 +34,16 @@ function ProductDetailPage() {
     async function fetchProduct() {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_images(image_url, display_order)')
         .eq('id', id)
         .single();
 
       if (error) {
         setError(error.message);
       } else {
+        const images = (data.product_images ?? []).slice().sort(
+          (a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order
+        );
         setProduct({
           id: data.id,
           name: data.name,
@@ -51,6 +55,7 @@ function ProductDetailPage() {
           sizeInfo: data.size_info,
           price: data.price,
           stock: data.stock,
+          imageUrl: images[0]?.image_url ?? `https://placehold.co/500x500?text=${encodeURIComponent(data.name)}`,
         });
       }
       setLoading(false);
@@ -91,10 +96,9 @@ function ProductDetailPage() {
 
       <main className="mx-auto max-w-5xl px-6 py-10">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
-          {/* 商品圖片區,先用假圖 */}
           <div>
             <img
-              src={`https://placehold.co/500x500?text=${encodeURIComponent(product.name)}`}
+              src={product.imageUrl}
               alt={product.name}
               className="w-full rounded-xl object-cover"
             />
@@ -157,7 +161,7 @@ function ProductDetailPage() {
       productId: product.id,
       name: product.name,
       price: product.price,
-      imageUrl: `https://placehold.co/400x400?text=${encodeURIComponent(product.name)}`,
+      imageUrl: product.imageUrl,
       stock: product.stock,
     })
   }

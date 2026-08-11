@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 
@@ -80,7 +81,12 @@ function AdminOrdersPage() {
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-          <h1 className="text-xl font-bold text-gray-900">訂單管理</h1>
+          <div className="flex items-center gap-6">
+            <h1 className="text-xl font-bold text-gray-900">訂單管理</h1>
+            <Link to="/admin/products" className="text-sm text-gray-500 hover:text-gray-800">
+              商品管理
+            </Link>
+          </div>
           <button onClick={signOut} className="text-sm text-gray-500 hover:text-gray-800">
             登出
           </button>

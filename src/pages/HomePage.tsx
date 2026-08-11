@@ -15,21 +15,26 @@ function HomePage() {
     async function fetchProducts() {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, product_images(image_url, display_order)')
         .order('created_at', { ascending: false });
 
       if (error) {
         setError(error.message);
       } else {
         // 把資料庫欄位名稱轉成前端型別(資料庫是 snake_case,前端習慣 camelCase)
-        const mapped: Product[] = data.map((row) => ({
-          id: row.id,
-          name: row.name,
-          description: row.description,
-          price: row.price,
-          imageUrl: `https://placehold.co/400x400?text=${encodeURIComponent(row.name)}`,
-          stock: row.stock,
-        }));
+        const mapped: Product[] = data.map((row) => {
+          const images = (row.product_images ?? []).slice().sort(
+            (a: { display_order: number }, b: { display_order: number }) => a.display_order - b.display_order
+          );
+          return {
+            id: row.id,
+            name: row.name,
+            description: row.description,
+            price: row.price,
+            imageUrl: images[0]?.image_url ?? `https://placehold.co/400x400?text=${encodeURIComponent(row.name)}`,
+            stock: row.stock,
+          };
+        });
         setProducts(mapped);
       }
       setLoading(false);

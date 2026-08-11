@@ -9,6 +9,7 @@ import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
+import AdminProductsPage from './pages/admin/AdminProductsPage';
 
 function App() {
   return (
@@ -29,6 +30,14 @@ function App() {
               element={
                 <ProtectedAdminRoute>
                   <AdminOrdersPage />
+                </ProtectedAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/products"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminProductsPage />
                 </ProtectedAdminRoute>
               }
             />
