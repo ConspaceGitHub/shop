@@ -3,7 +3,9 @@ import { CartProvider } from './context/CartContext';
 import HomePage from './pages/HomePage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
- 
+import CheckoutPage from './pages/CheckoutPage';
+import OrderSuccessPage from './pages/OrderSuccessPage';
+
 function App() {
   return (
     <CartProvider>
@@ -12,6 +14,8 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/products/:id" element={<ProductDetailPage />} />
           <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order-success" element={<OrderSuccessPage />} />
         </Routes>
       </BrowserRouter>
     </CartProvider>

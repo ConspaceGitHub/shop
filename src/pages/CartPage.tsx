@@ -93,9 +93,12 @@ function CartPage() {
           <span className="text-2xl font-bold text-gray-900">NT$ {totalPrice}</span>
         </div>
 
-        <button className="mt-4 w-full rounded-lg bg-gray-900 py-3 text-white font-semibold hover:bg-gray-700">
+        <Link
+          to="/checkout"
+          className="mt-4 block w-full rounded-lg bg-gray-900 py-3 text-center text-white font-semibold hover:bg-gray-700"
+        >
           前往結帳
-        </button>
+        </Link>
       </main>
     </div>
   );
