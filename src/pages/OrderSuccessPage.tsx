@@ -22,34 +22,34 @@ function OrderSuccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-cream">
       <main className="mx-auto max-w-2xl px-6 py-16 text-center">
         <div className="mb-4 text-5xl">🌱</div>
-        <h1 className="mb-2 text-2xl font-bold text-gray-900">
+        <h1 className="mb-2 font-display text-2xl font-bold text-forest-900">
           訂單成立，謝謝你，{summary.customerName}！
         </h1>
-        <p className="mb-8 text-gray-500">訂單編號：{summary.orderId}</p>
+        <p className="mb-8 text-forest-500">訂單編號：{summary.orderId}</p>
 
-        <div className="mb-8 rounded-lg border border-gray-200 bg-white p-6 text-left">
+        <div className="mb-8 rounded-xl border border-forest-100 bg-white p-6 text-left">
           <div className="space-y-2">
             {summary.items.map((item) => (
               <div key={item.name} className="flex justify-between text-sm">
-                <span className="text-gray-600">
+                <span className="text-forest-600">
                   {item.name} x {item.quantity}
                 </span>
-                <span className="text-gray-900">NT$ {item.price * item.quantity}</span>
+                <span className="text-forest-900">NT$ {item.price * item.quantity}</span>
               </div>
             ))}
           </div>
-          <div className="mt-4 flex justify-between border-t border-gray-200 pt-4 font-semibold text-gray-900">
+          <div className="mt-4 flex justify-between border-t border-forest-100 pt-4 font-semibold text-forest-900">
             <span>總計</span>
-            <span>NT$ {summary.totalPrice}</span>
+            <span className="text-terracotta-600">NT$ {summary.totalPrice}</span>
           </div>
         </div>
 
         <Link
           to="/"
-          className="inline-block rounded-lg bg-gray-900 px-6 py-3 text-white font-semibold hover:bg-gray-700"
+          className="inline-block rounded-xl bg-forest-700 px-6 py-3 font-semibold text-white transition active:scale-95 hover:bg-forest-800"
         >
           繼續逛逛
         </Link>

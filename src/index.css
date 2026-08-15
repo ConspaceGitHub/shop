@@ -1,1 +1,66 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Noto Sans TC", "Inter", system-ui, sans-serif;
+  --font-display: "Noto Serif TC", "Noto Sans TC", serif;
+
+  --color-cream: #faf7f1;
+  --color-cream-dark: #f1eae0;
+
+  --color-forest-50: #f1f6f2;
+  --color-forest-100: #dcebe0;
+  --color-forest-200: #b8d6c1;
+  --color-forest-300: #8fbd9d;
+  --color-forest-400: #649f76;
+  --color-forest-500: #457f58;
+  --color-forest-600: #366647;
+  --color-forest-700: #2b5138;
+  --color-forest-800: #23402d;
+  --color-forest-900: #1b3123;
+
+  --color-terracotta-400: #e08a5b;
+  --color-terracotta-500: #cf7141;
+  --color-terracotta-600: #b25a2f;
+}
+
+body {
+  background-color: var(--color-cream);
+}
+
+button:not(:disabled) {
+  cursor: pointer;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.45s ease-out both;
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.4);
+  }
+  65% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-badge-pop {
+  animation: badge-pop 0.4s ease-out;
+}

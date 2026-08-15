@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 
 interface ProductImage {
   id: string;
@@ -67,10 +67,6 @@ function AdminProductsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
   async function fetchProducts() {
     setLoading(true);
     const { data, error } = await supabase
@@ -85,6 +81,11 @@ function AdminProductsPage() {
     }
     setLoading(false);
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetchProducts 在儲存/刪除後也會被重用，無法整個包進 effect 裡
+    fetchProducts();
+  }, []);
 
   function resetForm() {
     setEditingId(null);
@@ -250,7 +251,7 @@ function AdminProductsPage() {
   }
 
   if (loading) {
-    return <div className="p-10 text-center text-gray-500">載入商品中...</div>;
+    return <div className="p-10 text-center text-forest-500">載入商品中...</div>;
   }
 
   if (error) {
@@ -258,16 +259,16 @@ function AdminProductsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
+    <div className="min-h-screen bg-cream">
+      <header className="border-b border-forest-100 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold text-gray-900">商品管理</h1>
-            <Link to="/admin/orders" className="text-sm text-gray-500 hover:text-gray-800">
+            <h1 className="text-xl font-bold text-forest-900">商品管理</h1>
+            <Link to="/admin/orders" className="text-sm text-forest-500 hover:text-forest-800">
               訂單管理
             </Link>
           </div>
-          <button onClick={signOut} className="text-sm text-gray-500 hover:text-gray-800">
+          <button onClick={signOut} className="text-sm text-forest-500 hover:text-forest-800">
             登出
           </button>
         </div>
@@ -276,34 +277,34 @@ function AdminProductsPage() {
       <main className="mx-auto max-w-6xl px-6 py-10">
         <form
           onSubmit={handleSubmit}
-          className="mb-10 space-y-4 rounded-lg border border-gray-200 bg-white p-6"
+          className="mb-10 space-y-4 rounded-lg border border-forest-100 bg-white p-6"
         >
-          <h2 className="font-semibold text-gray-900">{editingId ? '編輯商品' : '新增商品'}</h2>
+          <h2 className="font-semibold text-forest-900">{editingId ? '編輯商品' : '新增商品'}</h2>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-sm text-gray-700">商品名稱 *</label>
+              <label className="mb-1 block text-sm text-forest-700">商品名稱 *</label>
               <input
                 name="name"
                 value={form.name}
                 onChange={handleChange}
                 required
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+                className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-gray-700">學名</label>
+              <label className="mb-1 block text-sm text-forest-700">學名</label>
               <input
                 name="scientificName"
                 value={form.scientificName}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+                className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-gray-700">價格 *</label>
+              <label className="mb-1 block text-sm text-forest-700">價格 *</label>
               <input
                 type="number"
                 min="0"
@@ -312,12 +313,12 @@ function AdminProductsPage() {
                 value={form.price}
                 onChange={handleChange}
                 required
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+                className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-gray-700">庫存 *</label>
+              <label className="mb-1 block text-sm text-forest-700">庫存 *</label>
               <input
                 type="number"
                 min="0"
@@ -326,27 +327,27 @@ function AdminProductsPage() {
                 value={form.stock}
                 onChange={handleChange}
                 required
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+                className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-gray-700">原產地</label>
+              <label className="mb-1 block text-sm text-forest-700">原產地</label>
               <input
                 name="origin"
                 value={form.origin}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+                className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-gray-700">照顧難度</label>
+              <label className="mb-1 block text-sm text-forest-700">照顧難度</label>
               <select
                 name="careDifficulty"
                 value={form.careDifficulty}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+                className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
               >
                 <option value="">未設定</option>
                 <option value="easy">容易</option>
@@ -356,39 +357,39 @@ function AdminProductsPage() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-gray-700">日照需求</label>
+              <label className="mb-1 block text-sm text-forest-700">日照需求</label>
               <input
                 name="lightNeeds"
                 value={form.lightNeeds}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+                className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm text-gray-700">尺寸</label>
+              <label className="mb-1 block text-sm text-forest-700">尺寸</label>
               <input
                 name="sizeInfo"
                 value={form.sizeInfo}
                 onChange={handleChange}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+                className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-gray-700">商品描述</label>
+            <label className="mb-1 block text-sm text-forest-700">商品描述</label>
             <textarea
               name="description"
               value={form.description}
               onChange={handleChange}
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+              className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-gray-700">
+            <label className="mb-1 block text-sm text-forest-700">
               商品圖片{editingId ? '（會加在現有圖片後面）' : ''}
             </label>
             <input
@@ -397,7 +398,7 @@ function AdminProductsPage() {
               accept="image/*"
               multiple
               onChange={handleFilesChange}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2"
+              className="w-full rounded-lg border border-forest-200 px-3 py-2"
             />
           </div>
 
@@ -407,7 +408,7 @@ function AdminProductsPage() {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-lg bg-gray-900 px-6 py-3 text-white font-semibold hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="rounded-lg bg-forest-700 px-6 py-3 text-white font-semibold transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
             >
               {saving ? '儲存中...' : editingId ? '儲存變更' : '新增商品'}
             </button>
@@ -415,7 +416,7 @@ function AdminProductsPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-100"
+                className="rounded-lg border border-forest-200 px-6 py-3 font-semibold text-forest-700 hover:bg-forest-50"
               >
                 取消編輯
               </button>
@@ -425,10 +426,10 @@ function AdminProductsPage() {
 
         <div className="space-y-4">
           {products.map((product) => (
-            <div key={product.id} className="flex flex-wrap items-start gap-4 rounded-lg border border-gray-200 bg-white p-4">
+            <div key={product.id} className="flex flex-wrap items-start gap-4 rounded-lg border border-forest-100 bg-white p-4">
               <div className="flex gap-2">
                 {product.product_images.length === 0 && (
-                  <div className="flex h-20 w-20 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-400">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-md bg-forest-50 text-xs text-forest-400">
                     無圖片
                   </div>
                 )}
@@ -451,8 +452,8 @@ function AdminProductsPage() {
               </div>
 
               <div className="min-w-[160px] flex-1">
-                <p className="font-semibold text-gray-900">{product.name}</p>
-                <p className="text-sm text-gray-500">
+                <p className="font-semibold text-forest-900">{product.name}</p>
+                <p className="text-sm text-forest-500">
                   NT$ {product.price} · 庫存 {product.stock}
                 </p>
               </div>
@@ -460,7 +461,7 @@ function AdminProductsPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => startEdit(product)}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className="rounded-lg border border-forest-200 px-4 py-2 text-sm text-forest-700 hover:bg-forest-50"
                 >
                   編輯
                 </button>

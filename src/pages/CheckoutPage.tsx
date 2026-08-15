@@ -1,7 +1,8 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useCart } from '../context/CartContext';
+import { useCart } from '../context/useCart';
 import { supabase } from '../lib/supabase';
+import Header from '../components/Header';
 
 function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
@@ -12,12 +13,13 @@ function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="mb-4 text-lg text-gray-500">購物車是空的，無法結帳</p>
+      <div className="min-h-screen bg-cream">
+        <Header back={{ to: '/', label: '返回商品列表' }} />
+        <div className="flex flex-col items-center justify-center px-6 py-24 text-center">
+          <p className="mb-4 text-lg text-forest-500">購物車是空的，無法結帳</p>
           <Link
             to="/"
-            className="inline-block rounded-lg bg-gray-900 px-6 py-3 text-white font-semibold hover:bg-gray-700"
+            className="inline-block rounded-xl bg-forest-700 px-6 py-3 font-semibold text-white transition active:scale-95 hover:bg-forest-800"
           >
             去逛逛商品
           </Link>
@@ -86,81 +88,75 @@ function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto max-w-3xl px-6 py-6">
-          <Link to="/cart" className="text-sm text-gray-500 hover:text-gray-800">
-            ← 返回購物車
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen bg-cream">
+      <Header back={{ to: '/cart', label: '返回購物車' }} />
 
       <main className="mx-auto max-w-3xl px-6 py-10">
-        <h1 className="mb-6 text-2xl font-bold text-gray-900">結帳</h1>
+        <h1 className="mb-6 font-display text-2xl font-bold text-forest-900">結帳</h1>
 
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-4 font-semibold text-gray-900">訂單內容</h2>
+        <div className="mb-6 rounded-xl border border-forest-100 bg-white p-6">
+          <h2 className="mb-4 font-semibold text-forest-900">訂單內容</h2>
           <div className="space-y-2">
             {items.map((item) => (
               <div key={item.productId} className="flex justify-between text-sm">
-                <span className="text-gray-600">
+                <span className="text-forest-600">
                   {item.name} x {item.quantity}
                 </span>
-                <span className="text-gray-900">NT$ {item.price * item.quantity}</span>
+                <span className="text-forest-900">NT$ {item.price * item.quantity}</span>
               </div>
             ))}
           </div>
-          <div className="mt-4 flex justify-between border-t border-gray-200 pt-4 font-semibold text-gray-900">
+          <div className="mt-4 flex justify-between border-t border-forest-100 pt-4 font-semibold text-forest-900">
             <span>總計</span>
-            <span>NT$ {totalPrice}</span>
+            <span className="text-terracotta-600">NT$ {totalPrice}</span>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="font-semibold text-gray-900">收件資訊</h2>
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-forest-100 bg-white p-6">
+          <h2 className="font-semibold text-forest-900">收件資訊</h2>
 
           <div>
-            <label className="mb-1 block text-sm text-gray-700">姓名 *</label>
+            <label className="mb-1 block text-sm text-forest-700">姓名 *</label>
             <input
               name="name"
               value={form.name}
               onChange={handleChange}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+              className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-gray-700">Email *</label>
+            <label className="mb-1 block text-sm text-forest-700">Email *</label>
             <input
               type="email"
               name="email"
               value={form.email}
               onChange={handleChange}
               required
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+              className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-gray-700">電話</label>
+            <label className="mb-1 block text-sm text-forest-700">電話</label>
             <input
               name="phone"
               value={form.phone}
               onChange={handleChange}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+              className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm text-gray-700">收件地址 *</label>
+            <label className="mb-1 block text-sm text-forest-700">收件地址 *</label>
             <textarea
               name="address"
               value={form.address}
               onChange={handleChange}
               required
               rows={3}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+              className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
             />
           </div>
 
@@ -169,7 +165,7 @@ function CheckoutPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-gray-900 py-3 text-white font-semibold transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="w-full rounded-xl bg-forest-700 py-3 font-semibold text-white transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
           >
             {submitting ? '送出中...' : '確認送出訂單'}
           </button>

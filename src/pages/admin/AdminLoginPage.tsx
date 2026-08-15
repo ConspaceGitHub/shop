@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 
 function AdminLoginPage() {
   const { session, role, loading, signIn } = useAuth();
@@ -32,32 +32,32 @@ function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="flex min-h-screen items-center justify-center bg-cream">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-gray-200 bg-white p-8"
+        className="w-full max-w-sm space-y-4 rounded-lg border border-forest-100 bg-white p-8"
       >
-        <h1 className="text-xl font-bold text-gray-900">業者後台登入</h1>
+        <h1 className="text-xl font-bold text-forest-900">業者後台登入</h1>
 
         <div>
-          <label className="mb-1 block text-sm text-gray-700">Email</label>
+          <label className="mb-1 block text-sm text-forest-700">Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+            className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm text-gray-700">密碼</label>
+          <label className="mb-1 block text-sm text-forest-700">密碼</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-900 focus:outline-none"
+            className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
           />
         </div>
 
@@ -66,7 +66,7 @@ function AdminLoginPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded-lg bg-gray-900 py-3 text-white font-semibold hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+          className="w-full rounded-lg bg-forest-700 py-3 text-white font-semibold transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
         >
           {submitting ? '登入中...' : '登入'}
         </button>
