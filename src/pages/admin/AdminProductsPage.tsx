@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../context/useAuth';
+import AdminHeader from '../../components/AdminHeader';
 
 interface ProductImage {
   id: string;
@@ -55,7 +54,6 @@ function storagePathFromUrl(imageUrl: string): string | null {
 }
 
 function AdminProductsPage() {
-  const { signOut } = useAuth();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -260,21 +258,11 @@ function AdminProductsPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="border-b border-forest-100 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold text-forest-900">商品管理</h1>
-            <Link to="/admin/orders" className="text-sm text-forest-500 hover:text-forest-800">
-              訂單管理
-            </Link>
-          </div>
-          <button onClick={signOut} className="text-sm text-forest-500 hover:text-forest-800">
-            登出
-          </button>
-        </div>
-      </header>
+      <AdminHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
+        <h1 className="mb-6 font-display text-xl font-bold text-forest-900">商品管理</h1>
+
         <form
           onSubmit={handleSubmit}
           className="mb-10 space-y-4 rounded-lg border border-forest-100 bg-white p-6"

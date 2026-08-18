@@ -1,65 +1,72 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../context/useAuth';
+import AdminHeader from '../../components/AdminHeader';
+import {
+  statusLabel,
+  statusOptions,
+  inProgressStatuses,
+  type OrderStatus,
+  type OrderRow,
+} from '../../types/order';
 
-type OrderStatus = 'pending' | 'paid' | 'shipped' | 'completed' | 'cancelled';
+type StatusFilter = 'all' | 'in_progress' | 'completed' | 'cancelled';
 
-interface OrderItemRow {
-  id: string;
-  quantity: number;
-  unit_price: number;
-  products: { name: string } | null;
-}
-
-interface OrderRow {
-  id: string;
-  customer_name: string;
-  customer_email: string;
-  customer_phone: string | null;
-  shipping_address: string;
-  status: OrderStatus;
-  total_amount: number;
-  created_at: string;
-  order_items: OrderItemRow[];
-}
-
-const statusLabel: Record<OrderStatus, string> = {
-  pending: '待處理',
-  paid: '已付款',
-  shipped: '已出貨',
-  completed: '已完成',
-  cancelled: '已取消',
-};
-
-const statusOptions: OrderStatus[] = ['pending', 'paid', 'shipped', 'completed', 'cancelled'];
+const filterTabs: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'in_progress', label: '進行中' },
+  { value: 'completed', label: '已完成' },
+  { value: 'cancelled', label: '已取消' },
+];
 
 function AdminOrdersPage() {
-  const { signOut } = useAuth();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   async function fetchOrders() {
     setLoading(true);
-    const { data, error } = await supabase
+
+    let query = supabase
       .from('orders')
       .select('*, order_items(id, quantity, unit_price, products(name))')
       .order('created_at', { ascending: false });
 
+    if (statusFilter === 'in_progress') {
+      query = query.in('status', inProgressStatuses);
+    } else if (statusFilter === 'completed') {
+      query = query.eq('status', 'completed');
+    } else if (statusFilter === 'cancelled') {
+      query = query.eq('status', 'cancelled');
+    }
+
+    if (dateFrom) {
+      query = query.gte('created_at', `${dateFrom}T00:00:00`);
+    }
+    if (dateTo) {
+      query = query.lte('created_at', `${dateTo}T23:59:59`);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
       setError(error.message);
     } else {
+      setError(null);
       setOrders(data as unknown as OrderRow[]);
     }
     setLoading(false);
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 初次載入抓取訂單，屬預期行為
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 篩選條件改變時需要重新查詢，屬預期行為
     fetchOrders();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, dateFrom, dateTo]);
 
   async function handleStatusChange(orderId: string, status: OrderStatus) {
     setUpdatingId(orderId);
@@ -70,34 +77,73 @@ function AdminOrdersPage() {
     setUpdatingId(null);
   }
 
-  if (loading) {
-    return <div className="p-10 text-center text-forest-500">載入訂單中...</div>;
-  }
-
-  if (error) {
-    return <div className="p-10 text-center text-red-500">讀取訂單失敗：{error}</div>;
-  }
-
   return (
     <div className="min-h-screen bg-cream">
-      <header className="border-b border-forest-100 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-          <div className="flex items-center gap-6">
-            <h1 className="text-xl font-bold text-forest-900">訂單管理</h1>
-            <Link to="/admin/products" className="text-sm text-forest-500 hover:text-forest-800">
-              商品管理
-            </Link>
-          </div>
-          <button onClick={signOut} className="text-sm text-forest-500 hover:text-forest-800">
-            登出
-          </button>
-        </div>
-      </header>
+      <AdminHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-10">
-        {orders.length === 0 ? (
-          <p className="text-forest-500">目前沒有訂單</p>
-        ) : (
+        <h1 className="mb-6 font-display text-xl font-bold text-forest-900">訂單管理</h1>
+
+        <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-forest-100 bg-white p-4">
+          <div className="flex gap-2">
+            {filterTabs.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setStatusFilter(tab.value)}
+                className={`rounded-lg px-3 py-1.5 text-sm transition ${
+                  statusFilter === tab.value
+                    ? 'bg-forest-700 text-white'
+                    : 'border border-forest-200 text-forest-600 hover:bg-forest-50'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 text-sm text-forest-600">
+            <label>
+              從
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="ml-2 rounded-lg border border-forest-200 px-2 py-1.5 focus:border-forest-600 focus:outline-none"
+              />
+            </label>
+            <label>
+              到
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="ml-2 rounded-lg border border-forest-200 px-2 py-1.5 focus:border-forest-600 focus:outline-none"
+              />
+            </label>
+            {(dateFrom || dateTo) && (
+              <button
+                onClick={() => {
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+                className="text-forest-400 hover:text-forest-700"
+              >
+                清除日期
+              </button>
+            )}
+          </div>
+        </div>
+
+        {loading && <div className="p-10 text-center text-forest-500">載入訂單中...</div>}
+        {!loading && error && <div className="p-10 text-center text-red-500">讀取訂單失敗：{error}</div>}
+
+        {!loading && !error && orders.length === 0 && (
+          <p className="rounded-xl border border-forest-100 bg-white p-10 text-center text-forest-500">
+            沒有符合條件的訂單
+          </p>
+        )}
+
+        {!loading && !error && orders.length > 0 && (
           <div className="space-y-4">
             {orders.map((order) => (
               <div key={order.id} className="rounded-lg border border-forest-100 bg-white p-6">
@@ -127,7 +173,14 @@ function AdminOrdersPage() {
                         </option>
                       ))}
                     </select>
-                    <span className="text-lg font-bold text-forest-900">NT$ {order.total_amount}</span>
+                    <div className="text-right">
+                      {order.discount_amount > 0 && (
+                        <p className="text-xs text-terracotta-600">
+                          {order.coupon_code ? `${order.coupon_code} ` : ''}折抵 -NT$ {order.discount_amount}
+                        </p>
+                      )}
+                      <span className="text-lg font-bold text-forest-900">NT$ {order.total_amount}</span>
+                    </div>
                   </div>
                 </div>
 

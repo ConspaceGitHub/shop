@@ -11,6 +11,8 @@ interface OrderSummaryState {
   customerName: string;
   items: OrderSummaryItem[];
   totalPrice: number;
+  discountAmount: number;
+  finalTotal: number;
 }
 
 function OrderSuccessPage() {
@@ -41,9 +43,17 @@ function OrderSuccessPage() {
               </div>
             ))}
           </div>
+
+          {summary.discountAmount > 0 && (
+            <div className="mt-3 flex justify-between text-sm text-terracotta-600">
+              <span>優惠折抵</span>
+              <span>-NT$ {summary.discountAmount}</span>
+            </div>
+          )}
+
           <div className="mt-4 flex justify-between border-t border-forest-100 pt-4 font-semibold text-forest-900">
             <span>總計</span>
-            <span className="text-terracotta-600">NT$ {summary.totalPrice}</span>
+            <span className="text-terracotta-600">NT$ {summary.finalTotal}</span>
           </div>
         </div>
 
