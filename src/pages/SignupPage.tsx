@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import Header from '../components/Header';
 
@@ -14,14 +14,18 @@ interface FormState {
 const emptyForm: FormState = { name: '', email: '', password: '', phone: '', birthday: '' };
 
 function SignupPage() {
-  const { signUpMember } = useAuth();
+  const { session, member, loading, signUpMember } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState<FormState>(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/';
+  const from = (location.state as { from?: string } | null)?.from ?? '/account';
+
+  if (!loading && session && member) {
+    return <Navigate to={from} replace />;
+  }
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     const { name, value } = e.target;

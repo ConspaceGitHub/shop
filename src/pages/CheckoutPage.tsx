@@ -4,25 +4,12 @@ import { useCart } from '../context/useCart';
 import { useAuth } from '../context/useAuth';
 import { supabase } from '../lib/supabase';
 import Header from '../components/Header';
-
-interface Coupon {
-  id: string;
-  code: string;
-  title: string;
-  discount_type: 'percentage' | 'fixed';
-  discount_value: number;
-  min_order_amount: number;
-  coupon_type: 'general' | 'birthday' | 'anniversary';
-  starts_at: string;
-  ends_at: string | null;
-}
-
-function computeDiscount(coupon: Coupon, subtotal: number) {
-  if (coupon.discount_type === 'percentage') {
-    return Math.round(subtotal * (coupon.discount_value / 100));
-  }
-  return Math.min(coupon.discount_value, subtotal);
-}
+import {
+  computeDiscount,
+  isCouponEligibleForMember,
+  isCouponUsableNow,
+  type Coupon,
+} from '../lib/coupons';
 
 function CheckoutPage() {
   const { items, totalPrice, clearCart } = useCart();
@@ -66,18 +53,10 @@ function CheckoutPage() {
     );
   }
 
-  const now = new Date();
-  const eligibleCoupons = coupons.filter((c) => {
-    if (new Date(c.starts_at) > now) return false;
-    if (c.ends_at && new Date(c.ends_at) < now) return false;
-    if (totalPrice < c.min_order_amount) return false;
-    if (c.coupon_type === 'birthday') {
-      if (!member) return false;
-      const birthdayMonth = new Date(member.birthday).getMonth();
-      if (birthdayMonth !== now.getMonth()) return false;
-    }
-    return true;
-  });
+  const eligibleCoupons = coupons.filter(
+    (c) =>
+      isCouponUsableNow(c) && isCouponEligibleForMember(c, member) && totalPrice >= c.min_order_amount
+  );
 
   const selectedCoupon = eligibleCoupons.find((c) => c.id === selectedCouponId) ?? null;
   const discountAmount = selectedCoupon ? computeDiscount(selectedCoupon, totalPrice) : 0;

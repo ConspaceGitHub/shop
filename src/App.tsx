@@ -12,6 +12,7 @@ import OrderSuccessPage from './pages/OrderSuccessPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import MyOrdersPage from './pages/MyOrdersPage';
+import AccountPage from './pages/AccountPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
@@ -80,6 +81,14 @@ function App() {
               element={
                 <ProtectedMemberRoute>
                   <MyOrdersPage />
+                </ProtectedMemberRoute>
+              }
+            />
+            <Route
+              path="/account"
+              element={
+                <ProtectedMemberRoute>
+                  <AccountPage />
                 </ProtectedMemberRoute>
               }
             />

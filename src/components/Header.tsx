@@ -42,7 +42,9 @@ function Header({ back }: HeaderProps) {
               <Link to="/orders" className="text-sm text-forest-600 transition hover:text-forest-800">
                 我的訂單
               </Link>
-              <span className="text-sm text-forest-500">{member.name} 你好</span>
+              <Link to="/account" className="text-sm text-forest-500 transition hover:text-forest-800">
+                {member.name} 你好
+              </Link>
               <button onClick={signOut} className="text-sm text-forest-500 transition hover:text-forest-700">
                 登出
               </button>

@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import Header from '../components/Header';
 
 function LoginPage() {
-  const { signIn } = useAuth();
+  const { session, member, loading, signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
@@ -12,7 +12,13 @@ function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/';
+  const from = (location.state as { from?: string } | null)?.from ?? '/account';
+
+  // 已經是登入狀態（例如登入完成後，會員資料才剛查詢完成）就直接離開登入頁，
+  // 避免卡在這裡動不了
+  if (!loading && session && member) {
+    return <Navigate to={from} replace />;
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
