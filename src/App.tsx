@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import ProtectedMemberRoute from './components/ProtectedMemberRoute';
 import HomePage from './pages/HomePage';
@@ -14,6 +15,7 @@ import LoginPage from './pages/LoginPage';
 import MyOrdersPage from './pages/MyOrdersPage';
 import AccountPage from './pages/AccountPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
 import AdminCouponsPage from './pages/admin/AdminCouponsPage';
@@ -22,9 +24,10 @@ import AdminStatsPage from './pages/admin/AdminStatsPage';
 function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <BrowserRouter>
-          <Routes>
+      <ToastProvider>
+        <CartProvider>
+          <BrowserRouter>
+            <Routes>
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
 
@@ -94,7 +97,14 @@ function App() {
             />
 
             <Route path="/admin/login" element={<AdminLoginPage />} />
-            <Route path="/admin" element={<Navigate to="/admin/orders" replace />} />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminDashboardPage />
+                </ProtectedAdminRoute>
+              }
+            />
             <Route
               path="/admin/orders"
               element={
@@ -129,7 +139,8 @@ function App() {
             />
           </Routes>
         </BrowserRouter>
-      </CartProvider>
+        </CartProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

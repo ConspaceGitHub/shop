@@ -11,7 +11,7 @@ function AdminLoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (!loading && session && role === 'admin') {
-    return <Navigate to="/admin/orders" replace />;
+    return <Navigate to="/admin" replace />;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -28,7 +28,7 @@ function AdminLoginPage() {
       return;
     }
 
-    navigate('/admin/orders');
+    navigate('/admin');
   }
 
   return (

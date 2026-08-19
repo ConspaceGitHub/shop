@@ -1,5 +1,6 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useToast } from '../../context/useToast';
 import AdminHeader from '../../components/AdminHeader';
 
 type DiscountType = 'percentage' | 'fixed';
@@ -54,6 +55,7 @@ const emptyForm: FormState = {
 };
 
 function AdminCouponsPage() {
+  const { showToast } = useToast();
   const [coupons, setCoupons] = useState<CouponRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +139,7 @@ function AdminCouponsPage() {
     }
 
     setSaving(true);
+    const wasEditing = Boolean(editingId);
 
     const payload = {
       code: form.code.trim().toUpperCase(),
@@ -163,6 +166,7 @@ function AdminCouponsPage() {
 
     resetForm();
     await fetchCoupons();
+    showToast(wasEditing ? '優惠券已更新' : '優惠券已新增');
   }
 
   async function toggleActive(coupon: CouponRow) {
@@ -171,18 +175,24 @@ function AdminCouponsPage() {
       .update({ is_active: !coupon.is_active })
       .eq('id', coupon.id);
 
-    if (!error) {
+    if (error) {
+      showToast(`更新失敗：${error.message}`, 'error');
+    } else {
       setCoupons((prev) =>
         prev.map((c) => (c.id === coupon.id ? { ...c, is_active: !c.is_active } : c))
       );
+      showToast(coupon.is_active ? '優惠券已停用' : '優惠券已啟用');
     }
   }
 
   async function handleDelete(coupon: CouponRow) {
     if (!confirm(`確定要刪除優惠券「${coupon.title}」嗎？`)) return;
     const { error } = await supabase.from('coupons').delete().eq('id', coupon.id);
-    if (!error) {
+    if (error) {
+      showToast(`刪除失敗：${error.message}`, 'error');
+    } else {
       await fetchCoupons();
+      showToast('優惠券已刪除');
     }
   }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useToast } from '../../context/useToast';
 import AdminHeader from '../../components/AdminHeader';
 import {
   statusLabel,
@@ -19,6 +20,7 @@ const filterTabs: { value: StatusFilter; label: string }[] = [
 ];
 
 function AdminOrdersPage() {
+  const { showToast } = useToast();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +35,7 @@ function AdminOrdersPage() {
 
     let query = supabase
       .from('orders')
-      .select('*, order_items(id, quantity, unit_price, products(name))')
+      .select('*, order_items(id, product_id, quantity, unit_price, products(name))')
       .order('created_at', { ascending: false });
 
     if (statusFilter === 'in_progress') {
@@ -71,8 +73,11 @@ function AdminOrdersPage() {
   async function handleStatusChange(orderId: string, status: OrderStatus) {
     setUpdatingId(orderId);
     const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
-    if (!error) {
+    if (error) {
+      showToast(`更新失敗：${error.message}`, 'error');
+    } else {
       setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status } : o)));
+      showToast(`訂單狀態已更新為「${statusLabel[status]}」`);
     }
     setUpdatingId(null);
   }

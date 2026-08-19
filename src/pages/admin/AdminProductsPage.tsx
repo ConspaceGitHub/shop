@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useToast } from '../../context/useToast';
 import AdminHeader from '../../components/AdminHeader';
 
 interface ProductImage {
@@ -54,6 +55,7 @@ function storagePathFromUrl(imageUrl: string): string | null {
 }
 
 function AdminProductsPage() {
+  const { showToast } = useToast();
   const [products, setProducts] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -165,6 +167,7 @@ function AdminProductsPage() {
     }
 
     setSaving(true);
+    const wasEditing = Boolean(editingId);
 
     const payload = {
       name: form.name.trim(),
@@ -207,6 +210,7 @@ function AdminProductsPage() {
 
       resetForm();
       await fetchProducts();
+      showToast(wasEditing ? '商品已更新' : '商品已新增');
     } catch (err) {
       setFormError(err instanceof Error ? err.message : '儲存失敗');
     } finally {
@@ -221,6 +225,7 @@ function AdminProductsPage() {
       await supabase.storage.from('product-images').remove([path]);
     }
     await fetchProducts();
+    showToast('圖片已刪除');
   }
 
   async function handleDeleteProduct(product: ProductRow) {
@@ -233,10 +238,11 @@ function AdminProductsPage() {
     const { error: deleteError } = await supabase.from('products').delete().eq('id', product.id);
 
     if (deleteError) {
-      alert(
+      showToast(
         deleteError.code === '23503'
           ? '無法刪除：這個商品已經有訂單紀錄了。建議改把庫存改成 0 讓它下架，而不是刪除。'
-          : `刪除失敗：${deleteError.message}`
+          : `刪除失敗：${deleteError.message}`,
+        'error'
       );
       return;
     }
@@ -246,6 +252,7 @@ function AdminProductsPage() {
     }
 
     await fetchProducts();
+    showToast('商品已刪除');
   }
 
   if (loading) {

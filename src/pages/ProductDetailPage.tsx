@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useCart } from '../context/useCart';
+import { useToast } from '../context/useToast';
 import Header from '../components/Header';
 import { PLACEHOLDER_IMAGE } from '../lib/placeholderImage';
 
@@ -29,6 +30,7 @@ function ProductDetailPage() {
   const { id } = useParams();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const { addItem } = useCart();
+  const { showToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
@@ -168,6 +170,7 @@ function ProductDetailPage() {
                   stock: product.stock,
                 });
                 setJustAdded(true);
+                showToast(`已加入購物車：${product.name}`);
               }}
               disabled={product.stock === 0}
               className={`mt-6 w-full rounded-xl py-3 font-semibold text-white transition active:scale-95 disabled:cursor-not-allowed disabled:bg-forest-200 ${

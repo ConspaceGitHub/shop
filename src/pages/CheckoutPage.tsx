@@ -85,35 +85,24 @@ function CheckoutPage() {
 
     const orderId = crypto.randomUUID();
 
-    const { error: orderError } = await supabase.from('orders').insert({
-      id: orderId,
-      user_id: session.user.id,
-      customer_name: form.name.trim(),
-      customer_email: form.email.trim(),
-      customer_phone: form.phone.trim() || null,
-      shipping_address: form.address.trim(),
-      total_amount: finalTotal,
-      discount_amount: discountAmount,
-      coupon_code: selectedCoupon?.code ?? null,
+    const { error: orderError } = await supabase.rpc('place_order', {
+      p_order_id: orderId,
+      p_user_id: session.user.id,
+      p_customer_name: form.name.trim(),
+      p_customer_email: form.email.trim(),
+      p_customer_phone: form.phone.trim() || null,
+      p_shipping_address: form.address.trim(),
+      p_coupon_code: selectedCoupon?.code ?? null,
+      p_discount_amount: discountAmount,
+      p_items: items.map((item) => ({
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_price: item.price,
+      })),
     });
 
     if (orderError) {
       setError(`建立訂單失敗：${orderError.message}`);
-      setSubmitting(false);
-      return;
-    }
-
-    const orderItemsPayload = items.map((item) => ({
-      order_id: orderId,
-      product_id: item.productId,
-      quantity: item.quantity,
-      unit_price: item.price,
-    }));
-
-    const { error: itemsError } = await supabase.from('order_items').insert(orderItemsPayload);
-
-    if (itemsError) {
-      setError(`建立訂單明細失敗：${itemsError.message}`);
       setSubmitting(false);
       return;
     }

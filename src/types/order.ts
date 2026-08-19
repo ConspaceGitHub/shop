@@ -15,6 +15,7 @@ export const inProgressStatuses: OrderStatus[] = ['pending', 'paid', 'shipped'];
 
 export interface OrderItemRow {
   id: string;
+  product_id: string;
   quantity: number;
   unit_price: number;
   products: { name: string } | null;

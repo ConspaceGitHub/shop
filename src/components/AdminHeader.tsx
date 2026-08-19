@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 
 const navItems = [
+  { to: '/admin', label: '總覽' },
   { to: '/admin/orders', label: '訂單管理' },
   { to: '/admin/products', label: '商品管理' },
   { to: '/admin/coupons', label: '優惠券管理' },
