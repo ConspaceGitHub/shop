@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import AdminHeader from '../../components/AdminHeader';
+import LineChart from '../../components/LineChart';
 import { statusLabel, type OrderStatus } from '../../types/order';
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -34,6 +35,7 @@ function AdminDashboardPage() {
   const [todayCount, setTodayCount] = useState(0);
   const [monthRevenue, setMonthRevenue] = useState(0);
   const [memberCount, setMemberCount] = useState(0);
+  const [weeklyTrend, setWeeklyTrend] = useState<{ label: string; value: number }[]>([]);
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [recentMembers, setRecentMembers] = useState<RecentMember[]>([]);
@@ -62,7 +64,7 @@ function AdminDashboardPage() {
           .gte('created_at', todayStart),
         supabase
           .from('orders')
-          .select('total_amount, status')
+          .select('total_amount, status, created_at')
           .in('status', SALE_STATUSES)
           .gte('created_at', monthStart),
         supabase.from('members').select('id', { count: 'exact', head: true }),
@@ -84,15 +86,24 @@ function AdminDashboardPage() {
           .limit(5),
       ]);
 
+      const monthOrders =
+        (monthOrdersRes.data as Array<{ total_amount: number; created_at: string }>) ?? [];
+
       setPendingCount(pendingRes.count ?? 0);
       setTodayCount(todayRes.count ?? 0);
-      setMonthRevenue(
-        ((monthOrdersRes.data as Array<{ total_amount: number }>) ?? []).reduce(
-          (sum, o) => sum + o.total_amount,
-          0
-        )
-      );
+      setMonthRevenue(monthOrders.reduce((sum, o) => sum + o.total_amount, 0));
       setMemberCount(membersCountRes.count ?? 0);
+
+      const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const weekCount = Math.ceil(daysInMonth / 7);
+      const buckets = Array.from({ length: weekCount }, () => 0);
+      for (const o of monthOrders) {
+        const day = new Date(o.created_at).getDate();
+        const weekIndex = Math.min(weekCount - 1, Math.floor((day - 1) / 7));
+        buckets[weekIndex] += o.total_amount;
+      }
+      setWeeklyTrend(buckets.map((v, i) => ({ label: `第${i + 1}週`, value: v })));
+
       setLowStockProducts((lowStockRes.data as LowStockProduct[]) ?? []);
       setRecentOrders((recentOrdersRes.data as RecentOrder[]) ?? []);
       setRecentMembers((recentMembersRes.data as RecentMember[]) ?? []);
@@ -144,6 +155,20 @@ function AdminDashboardPage() {
               </div>
             </div>
 
+            <section className="mb-8 rounded-xl border border-forest-100 bg-white p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="font-semibold text-forest-900">本月營收趨勢</h2>
+                <Link to="/admin/stats" className="text-sm text-forest-600 hover:text-forest-800">
+                  查看完整銷售統計 →
+                </Link>
+              </div>
+              {weeklyTrend.every((w) => w.value === 0) ? (
+                <p className="py-8 text-center text-forest-400">本月尚無營收資料</p>
+              ) : (
+                <LineChart data={weeklyTrend} formatValue={(v) => `NT$${v.toLocaleString()}`} />
+              )}
+            </section>
+
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
               <section>
                 <div className="mb-3 flex items-center justify-between">
@@ -160,9 +185,10 @@ function AdminDashboardPage() {
                 ) : (
                   <div className="space-y-2">
                     {lowStockProducts.map((p) => (
-                      <div
+                      <Link
                         key={p.id}
-                        className="flex items-center justify-between rounded-xl border border-terracotta-400/40 bg-white p-4"
+                        to="/admin/products"
+                        className="flex items-center justify-between rounded-xl border border-terracotta-400/40 bg-white p-4 transition hover:shadow-sm"
                       >
                         <span className="text-sm text-forest-800">{p.name}</span>
                         <span
@@ -172,7 +198,7 @@ function AdminDashboardPage() {
                         >
                           剩 {p.stock} 件
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}
@@ -193,9 +219,10 @@ function AdminDashboardPage() {
                 ) : (
                   <div className="space-y-2">
                     {recentOrders.map((order) => (
-                      <div
+                      <Link
                         key={order.id}
-                        className="flex items-center justify-between rounded-xl border border-forest-100 bg-white p-4"
+                        to="/admin/orders"
+                        className="flex items-center justify-between rounded-xl border border-forest-100 bg-white p-4 transition hover:shadow-sm"
                       >
                         <div>
                           <p className="text-sm font-medium text-forest-800">{order.customer_name}</p>
@@ -207,7 +234,7 @@ function AdminDashboardPage() {
                         <span className="text-sm font-semibold text-forest-900">
                           NT$ {order.total_amount}
                         </span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}

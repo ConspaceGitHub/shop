@@ -5,7 +5,7 @@ import { useAuth } from '../context/useAuth';
 import { useToast } from '../context/useToast';
 import Header from '../components/Header';
 import AccountSidebar from '../components/AccountSidebar';
-import { PLACEHOLDER_IMAGE } from '../lib/placeholderImage';
+import ImagePlaceholder from '../components/ImagePlaceholder';
 import { statusLabel, type OrderRow } from '../types/order';
 import { isCouponEligibleForMember, isCouponUsableNow, type Coupon } from '../lib/coupons';
 
@@ -13,7 +13,7 @@ interface RecommendedProduct {
   id: string;
   name: string;
   price: number;
-  imageUrl: string;
+  imageUrl: string | null;
 }
 
 interface RedeemedCoupon {
@@ -116,7 +116,7 @@ function AccountPage() {
             id: p.id,
             name: p.name,
             price: p.price,
-            imageUrl: images[0]?.image_url ?? PLACEHOLDER_IMAGE,
+            imageUrl: images[0]?.image_url ?? null,
           };
         })
       );
@@ -391,7 +391,11 @@ function AccountPage() {
                       to={`/products/${p.id}`}
                       className="block overflow-hidden rounded-xl border border-forest-100 bg-white transition hover:-translate-y-0.5 hover:shadow-md"
                     >
-                      <img src={p.imageUrl} alt={p.name} className="h-28 w-full object-cover" />
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.name} className="h-28 w-full object-cover" />
+                      ) : (
+                        <ImagePlaceholder className="h-28 w-full" />
+                      )}
                       <div className="p-2">
                         <p className="truncate text-sm font-medium text-forest-900">{p.name}</p>
                         <p className="text-sm text-terracotta-600">NT$ {p.price}</p>

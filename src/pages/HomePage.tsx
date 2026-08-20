@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase';
 import Header from '../components/Header';
 import ProductCard from '../components/ProductCard';
 import type { Product } from '../types/product';
-import { PLACEHOLDER_IMAGE } from '../lib/placeholderImage';
 
 function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -30,7 +29,7 @@ function HomePage() {
             name: row.name,
             description: row.description,
             price: row.price,
-            imageUrl: images[0]?.image_url ?? PLACEHOLDER_IMAGE,
+            imageUrl: images[0]?.image_url ?? null,
             stock: row.stock,
           };
         });

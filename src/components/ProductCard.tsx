@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../types/product';
+import ImagePlaceholder from './ImagePlaceholder';
 
 interface ProductCardProps {
   product: Product;
@@ -12,11 +13,15 @@ function ProductCard({ product }: ProductCardProps) {
       className="group flex h-full flex-col overflow-hidden rounded-2xl border border-forest-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
     >
       <div className="relative overflow-hidden bg-forest-50">
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {product.imageUrl ? (
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <ImagePlaceholder className="h-56 w-full" />
+        )}
         {product.stock === 0 && (
           <span className="absolute top-3 right-3 rounded-full bg-forest-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
             已售完

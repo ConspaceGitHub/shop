@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useCart } from '../context/useCart';
 import { useToast } from '../context/useToast';
 import Header from '../components/Header';
+import ImagePlaceholder from '../components/ImagePlaceholder';
 import { PLACEHOLDER_IMAGE } from '../lib/placeholderImage';
 
 interface ProductDetail {
@@ -17,7 +18,7 @@ interface ProductDetail {
   sizeInfo: string | null;
   price: number;
   stock: number;
-  imageUrl: string;
+  imageUrl: string | null;
 }
 
 const difficultyLabel: Record<string, string> = {
@@ -66,7 +67,7 @@ function ProductDetailPage() {
           sizeInfo: data.size_info,
           price: data.price,
           stock: data.stock,
-          imageUrl: images[0]?.image_url ?? PLACEHOLDER_IMAGE,
+          imageUrl: images[0]?.image_url ?? null,
         });
       }
       setLoading(false);
@@ -102,11 +103,15 @@ function ProductDetailPage() {
       <main className="mx-auto max-w-5xl px-6 py-10">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2">
           <div>
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="w-full rounded-2xl border border-forest-100 object-cover"
-            />
+            {product.imageUrl ? (
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="w-full rounded-2xl border border-forest-100 object-cover"
+              />
+            ) : (
+              <ImagePlaceholder className="aspect-square w-full rounded-2xl border border-forest-100" />
+            )}
           </div>
 
           {/* 商品資訊區 */}
@@ -166,7 +171,7 @@ function ProductDetailPage() {
                   productId: product.id,
                   name: product.name,
                   price: product.price,
-                  imageUrl: product.imageUrl,
+                  imageUrl: product.imageUrl ?? PLACEHOLDER_IMAGE,
                   stock: product.stock,
                 });
                 setJustAdded(true);

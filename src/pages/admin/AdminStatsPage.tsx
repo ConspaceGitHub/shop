@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import AdminHeader from '../../components/AdminHeader';
+import LineChart from '../../components/LineChart';
+import { statusLabel, statusOptions, type OrderStatus } from '../../types/order';
 
 // 「銷售額」只計入已成立的訂單：已付款/已出貨/已完成，排除待處理與已取消
 const SALE_STATUSES = ['paid', 'shipped', 'completed'];
+const monthLabels = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
 
 interface QuarterStat {
   quarter: number;
@@ -20,6 +23,14 @@ function AdminStatsPage() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [quarterStats, setQuarterStats] = useState<QuarterStat[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<number[]>(Array(12).fill(0));
+  const [statusCounts, setStatusCounts] = useState<Record<OrderStatus, number>>({
+    pending: 0,
+    paid: 0,
+    shipped: 0,
+    completed: 0,
+    cancelled: 0,
+  });
   const [productStats, setProductStats] = useState<ProductStat[]>([]);
   const [orderCount, setOrderCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -32,7 +43,7 @@ function AdminStatsPage() {
     const yearStart = `${year}-01-01T00:00:00`;
     const yearEnd = `${year + 1}-01-01T00:00:00`;
 
-    const [ordersRes, itemsRes] = await Promise.all([
+    const [ordersRes, itemsRes, allStatusRes] = await Promise.all([
       supabase
         .from('orders')
         .select('total_amount, created_at')
@@ -45,6 +56,11 @@ function AdminStatsPage() {
         .in('orders.status', SALE_STATUSES)
         .gte('orders.created_at', yearStart)
         .lt('orders.created_at', yearEnd),
+      supabase
+        .from('orders')
+        .select('status')
+        .gte('created_at', yearStart)
+        .lt('created_at', yearEnd),
     ]);
 
     if (ordersRes.error) {
@@ -58,14 +74,29 @@ function AdminStatsPage() {
       return;
     }
 
-    const buckets: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const quarterBuckets: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const monthBuckets = Array(12).fill(0);
     for (const order of ordersRes.data ?? []) {
       const month = new Date(order.created_at).getMonth();
       const quarter = Math.floor(month / 3) + 1;
-      buckets[quarter] += Number(order.total_amount);
+      quarterBuckets[quarter] += Number(order.total_amount);
+      monthBuckets[month] += Number(order.total_amount);
     }
-    setQuarterStats([1, 2, 3, 4].map((q) => ({ quarter: q, revenue: buckets[q] })));
+    setQuarterStats([1, 2, 3, 4].map((q) => ({ quarter: q, revenue: quarterBuckets[q] })));
+    setMonthlyRevenue(monthBuckets);
     setOrderCount(ordersRes.data?.length ?? 0);
+
+    const counts: Record<OrderStatus, number> = {
+      pending: 0,
+      paid: 0,
+      shipped: 0,
+      completed: 0,
+      cancelled: 0,
+    };
+    for (const o of (allStatusRes.data as Array<{ status: OrderStatus }>) ?? []) {
+      counts[o.status] = (counts[o.status] ?? 0) + 1;
+    }
+    setStatusCounts(counts);
 
     const items = (itemsRes.data ?? []) as unknown as Array<{
       quantity: number;
@@ -107,6 +138,9 @@ function AdminStatsPage() {
     [topProducts]
   );
   const avgOrderValue = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;
+  const monthlyTrendData = monthLabels.map((label, i) => ({ label, value: monthlyRevenue[i] }));
+  const totalStatusCount = Object.values(statusCounts).reduce((sum, c) => sum + c, 0);
+  const maxStatusCount = Math.max(1, ...Object.values(statusCounts));
 
   return (
     <div className="min-h-screen bg-cream">
@@ -204,6 +238,39 @@ function AdminStatsPage() {
                   ))}
                 </tbody>
               </table>
+            </section>
+
+            <section className="mb-10 rounded-xl border border-forest-100 bg-white p-6">
+              <h2 className="mb-6 font-semibold text-forest-900">月度營收趨勢（{year} 年）</h2>
+              {totalRevenue === 0 ? (
+                <p className="py-8 text-center text-forest-400">此年度尚無營收資料</p>
+              ) : (
+                <LineChart data={monthlyTrendData} formatValue={(v) => `NT$${v.toLocaleString()}`} />
+              )}
+            </section>
+
+            <section className="mb-10 rounded-xl border border-forest-100 bg-white p-6">
+              <h2 className="mb-6 font-semibold text-forest-900">訂單狀態分布（{year} 年）</h2>
+              {totalStatusCount === 0 ? (
+                <p className="py-8 text-center text-forest-400">此年度尚無訂單資料</p>
+              ) : (
+                <div className="space-y-3">
+                  {statusOptions.map((s) => (
+                    <div key={s} className="flex items-center gap-3">
+                      <span className="w-16 shrink-0 text-sm text-forest-700">{statusLabel[s]}</span>
+                      <div className="h-6 flex-1 rounded bg-forest-50">
+                        <div
+                          className={`h-full rounded ${s === 'cancelled' ? 'bg-terracotta-500' : 'bg-forest-600'}`}
+                          style={{ width: `${Math.max(3, (statusCounts[s] / maxStatusCount) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="w-14 shrink-0 text-right text-sm font-medium text-forest-900">
+                        {statusCounts[s]} 筆
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="rounded-xl border border-forest-100 bg-white p-6">
