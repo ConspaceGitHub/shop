@@ -17,6 +17,7 @@ function CheckoutPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ name: '', email: '', phone: '', address: '' });
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [usedCouponCodes, setUsedCouponCodes] = useState<Set<string>>(new Set());
   const [selectedCouponId, setSelectedCouponId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +31,20 @@ function CheckoutPage() {
 
   useEffect(() => {
     async function fetchCoupons() {
-      const { data } = await supabase.from('coupons').select('*').eq('is_active', true);
-      setCoupons((data as Coupon[]) ?? []);
+      if (!session) return;
+
+      const [couponsRes, redemptionsRes] = await Promise.all([
+        supabase.from('coupons').select('*').eq('is_active', true),
+        supabase.from('coupon_redemptions').select('coupon_code').eq('user_id', session.user.id),
+      ]);
+
+      setCoupons((couponsRes.data as Coupon[]) ?? []);
+      setUsedCouponCodes(
+        new Set(((redemptionsRes.data as Array<{ coupon_code: string }>) ?? []).map((r) => r.coupon_code))
+      );
     }
     fetchCoupons();
-  }, []);
+  }, [session]);
 
   if (items.length === 0) {
     return (
@@ -55,7 +65,10 @@ function CheckoutPage() {
 
   const eligibleCoupons = coupons.filter(
     (c) =>
-      isCouponUsableNow(c) && isCouponEligibleForMember(c, member) && totalPrice >= c.min_order_amount
+      !usedCouponCodes.has(c.code) &&
+      isCouponUsableNow(c) &&
+      isCouponEligibleForMember(c, member) &&
+      totalPrice >= c.min_order_amount
   );
 
   const selectedCoupon = eligibleCoupons.find((c) => c.id === selectedCouponId) ?? null;

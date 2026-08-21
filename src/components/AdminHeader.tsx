@@ -6,6 +6,7 @@ const navItems = [
   { to: '/admin/orders', label: '訂單管理' },
   { to: '/admin/products', label: '商品管理' },
   { to: '/admin/coupons', label: '優惠券管理' },
+  { to: '/admin/members', label: '會員管理' },
   { to: '/admin/stats', label: '銷售統計' },
 ];
 
@@ -20,7 +21,9 @@ function AdminHeader() {
           <span className="font-display text-lg font-bold text-forest-900">業者後台</span>
           <nav className="flex items-center gap-5">
             {navItems.map((item) => {
-              const active = location.pathname === item.to;
+              const active =
+                location.pathname === item.to ||
+                (item.to !== '/admin' && location.pathname.startsWith(`${item.to}/`));
               return (
                 <Link
                   key={item.to}

@@ -242,7 +242,12 @@ function AdminDashboardPage() {
             </div>
 
             <section className="mt-8">
-              <h2 className="mb-3 font-semibold text-forest-900">最新會員</h2>
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-semibold text-forest-900">最新會員</h2>
+                <Link to="/admin/members" className="text-sm text-forest-600 hover:text-forest-800">
+                  會員管理 →
+                </Link>
+              </div>
 
               {recentMembers.length === 0 ? (
                 <p className="rounded-xl border border-forest-100 bg-white p-6 text-center text-forest-500">
@@ -251,13 +256,17 @@ function AdminDashboardPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {recentMembers.map((m) => (
-                    <div key={m.id} className="rounded-xl border border-forest-100 bg-white p-4">
+                    <Link
+                      key={m.id}
+                      to={`/admin/members/${m.id}`}
+                      className="rounded-xl border border-forest-100 bg-white p-4 transition hover:shadow-sm"
+                    >
                       <p className="text-sm font-medium text-forest-800">{m.name}</p>
                       <p className="text-xs text-forest-400">{m.email}</p>
                       <p className="mt-1 text-xs text-forest-400">
                         {new Date(m.created_at).toLocaleDateString('zh-TW')} 加入
                       </p>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

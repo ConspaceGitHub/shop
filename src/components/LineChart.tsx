@@ -12,7 +12,7 @@ interface LineChartProps {
 function LineChart({ data, height = 160, formatValue = (v) => `${v}` }: LineChartProps) {
   const width = 100;
   const max = Math.max(1, ...data.map((d) => d.value));
-  const padTop = 10;
+  const padTop = 8;
   const plotHeight = height - padTop - 4;
 
   const points = data.map((d, i) => {
@@ -27,6 +27,14 @@ function LineChart({ data, height = 160, formatValue = (v) => `${v}` }: LineChar
       ? `${linePath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`
       : '';
 
+  // 4 條刻度線：從最大值平均分到 0，讓人抓得到數字大概的量級
+  const tickCount = 4;
+  const ticks = Array.from({ length: tickCount }, (_, i) => {
+    const value = (max * (tickCount - 1 - i)) / (tickCount - 1);
+    const y = padTop + plotHeight - (value / max) * plotHeight;
+    return { value, y };
+  });
+
   // 標籤太多的話只挑頭、中、尾，避免擠成一團
   const showAllLabels = data.length <= 6;
   const labelIndexes = showAllLabels
@@ -34,42 +42,56 @@ function LineChart({ data, height = 160, formatValue = (v) => `${v}` }: LineChar
     : Array.from(new Set([0, Math.floor((data.length - 1) / 2), data.length - 1]));
 
   return (
-    <div>
-      <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="h-40 w-full overflow-visible">
-        <line
-          x1="0"
-          y1={height - 0.5}
-          x2={width}
-          y2={height - 0.5}
-          stroke="var(--color-forest-100)"
-          strokeWidth="0.5"
-        />
-        {areaPath && <path d={areaPath} fill="var(--color-forest-200)" opacity="0.35" />}
-        {linePath && (
-          <path
-            d={linePath}
-            fill="none"
-            stroke="var(--color-forest-600)"
-            strokeWidth="1.6"
-            vectorEffect="non-scaling-stroke"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-        )}
-        {points.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="1.8" fill="var(--color-forest-700)">
-            <title>
-              {p.label}：{formatValue(p.value)}
-            </title>
-          </circle>
+    <div className="flex gap-2">
+      <div
+        className="flex shrink-0 flex-col justify-between py-1 text-right text-[10px] text-forest-400"
+        style={{ height }}
+      >
+        {ticks.map((t, i) => (
+          <span key={i}>{formatValue(Math.round(t.value))}</span>
         ))}
-      </svg>
-      <div className="mt-1 flex justify-between text-[11px] text-forest-400">
-        {data.map((d, i) => (
-          <span key={i} className={labelIndexes.includes(i) ? '' : 'invisible'}>
-            {d.label}
-          </span>
-        ))}
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" className="w-full" style={{ height }}>
+          {ticks.map((t, i) => (
+            <line
+              key={i}
+              x1="0"
+              y1={t.y}
+              x2={width}
+              y2={t.y}
+              stroke="var(--color-forest-100)"
+              strokeWidth="0.5"
+            />
+          ))}
+          {areaPath && <path d={areaPath} fill="var(--color-forest-200)" opacity="0.35" />}
+          {linePath && (
+            <path
+              d={linePath}
+              fill="none"
+              stroke="var(--color-forest-600)"
+              strokeWidth="1.6"
+              vectorEffect="non-scaling-stroke"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          )}
+          {points.map((p, i) => (
+            <circle key={i} cx={p.x} cy={p.y} r="1.8" fill="var(--color-forest-700)">
+              <title>
+                {p.label}：{formatValue(p.value)}
+              </title>
+            </circle>
+          ))}
+        </svg>
+        <div className="mt-1 flex justify-between text-[11px] text-forest-400">
+          {data.map((d, i) => (
+            <span key={i} className={labelIndexes.includes(i) ? '' : 'invisible'}>
+              {d.label}
+            </span>
+          ))}
+        </div>
       </div>
     </div>
   );

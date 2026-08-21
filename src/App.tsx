@@ -19,6 +19,8 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminOrdersPage from './pages/admin/AdminOrdersPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
 import AdminCouponsPage from './pages/admin/AdminCouponsPage';
+import AdminMembersPage from './pages/admin/AdminMembersPage';
+import AdminMemberDetailPage from './pages/admin/AdminMemberDetailPage';
 import AdminStatsPage from './pages/admin/AdminStatsPage';
 
 function App() {
@@ -126,6 +128,22 @@ function App() {
               element={
                 <ProtectedAdminRoute>
                   <AdminCouponsPage />
+                </ProtectedAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/members"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminMembersPage />
+                </ProtectedAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/members/:id"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminMemberDetailPage />
                 </ProtectedAdminRoute>
               }
             />
