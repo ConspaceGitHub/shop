@@ -29,6 +29,14 @@ interface RecentMember {
   created_at: string;
 }
 
+interface BirthdayMember {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  hasUsedBirthdayCoupon: boolean;
+}
+
 function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
@@ -39,6 +47,8 @@ function AdminDashboardPage() {
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
   const [recentMembers, setRecentMembers] = useState<RecentMember[]>([]);
+  const [birthdayMembers, setBirthdayMembers] = useState<BirthdayMember[]>([]);
+  const [hasBirthdayCoupon, setHasBirthdayCoupon] = useState(true);
 
   useEffect(() => {
     async function load() {
@@ -107,6 +117,50 @@ function AdminDashboardPage() {
       setLowStockProducts((lowStockRes.data as LowStockProduct[]) ?? []);
       setRecentOrders((recentOrdersRes.data as RecentOrder[]) ?? []);
       setRecentMembers((recentMembersRes.data as RecentMember[]) ?? []);
+
+      // 本月壽星：找出生日月份等於當月的會員，並比對他們有沒有用過生日優惠券
+      const [allMembersRes, birthdayCouponsRes] = await Promise.all([
+        supabase.from('members').select('id, name, email, phone, birthday'),
+        supabase.from('coupons').select('code').eq('coupon_type', 'birthday').eq('is_active', true),
+      ]);
+
+      const birthdayCodes = ((birthdayCouponsRes.data as Array<{ code: string }>) ?? []).map(
+        (c) => c.code
+      );
+      setHasBirthdayCoupon(birthdayCodes.length > 0);
+
+      const thisMonthMembers = (
+        (allMembersRes.data as Array<{
+          id: string;
+          name: string;
+          email: string;
+          phone: string;
+          birthday: string;
+        }>) ?? []
+      ).filter((m) => new Date(m.birthday).getMonth() === now.getMonth());
+
+      let usedIds = new Set<string>();
+      if (thisMonthMembers.length > 0 && birthdayCodes.length > 0) {
+        const { data: redemptions } = await supabase
+          .from('coupon_redemptions')
+          .select('user_id')
+          .in(
+            'user_id',
+            thisMonthMembers.map((m) => m.id)
+          )
+          .in('coupon_code', birthdayCodes);
+        usedIds = new Set(((redemptions as Array<{ user_id: string }>) ?? []).map((r) => r.user_id));
+      }
+
+      setBirthdayMembers(
+        thisMonthMembers.map((m) => ({
+          id: m.id,
+          name: m.name,
+          email: m.email,
+          phone: m.phone,
+          hasUsedBirthdayCoupon: usedIds.has(m.id),
+        }))
+      );
 
       setLoading(false);
     }
@@ -240,6 +294,50 @@ function AdminDashboardPage() {
                 )}
               </section>
             </div>
+
+            <section className="mb-8 mt-8">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-semibold text-forest-900">本月壽星</h2>
+                <Link to="/admin/coupons" className="text-sm text-forest-600 hover:text-forest-800">
+                  優惠券管理 →
+                </Link>
+              </div>
+
+              {!hasBirthdayCoupon && (
+                <p className="mb-3 rounded-xl border border-terracotta-400/40 bg-terracotta-50 p-3 text-sm text-terracotta-600">
+                  目前沒有啟用中的生日優惠券，去優惠券管理新增一張「生日優惠」類型的優惠券吧
+                </p>
+              )}
+
+              {birthdayMembers.length === 0 ? (
+                <p className="rounded-xl border border-forest-100 bg-white p-6 text-center text-forest-500">
+                  這個月沒有會員生日
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {birthdayMembers.map((m) => (
+                    <Link
+                      key={m.id}
+                      to={`/admin/members/${m.id}`}
+                      className="rounded-xl border border-forest-100 bg-white p-4 transition hover:shadow-sm"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-forest-800">🎂 {m.name}</p>
+                        {hasBirthdayCoupon &&
+                          (m.hasUsedBirthdayCoupon ? (
+                            <span className="text-xs text-forest-400">已使用</span>
+                          ) : (
+                            <span className="text-xs font-medium text-terracotta-600">尚未使用</span>
+                          ))}
+                      </div>
+                      <p className="mt-1 text-xs text-forest-400">
+                        {m.email} · {m.phone}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
 
             <section className="mt-8">
               <div className="mb-3 flex items-center justify-between">
