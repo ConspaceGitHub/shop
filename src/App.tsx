@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { AdminNotificationsProvider } from './context/AdminNotificationsContext';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import ProtectedMemberRoute from './components/ProtectedMemberRoute';
 import HomePage from './pages/HomePage';
@@ -27,7 +28,8 @@ function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <CartProvider>
+        <AdminNotificationsProvider>
+          <CartProvider>
           <BrowserRouter>
             <Routes>
             <Route path="/signup" element={<SignupPage />} />
@@ -157,7 +159,8 @@ function App() {
             />
           </Routes>
         </BrowserRouter>
-        </CartProvider>
+          </CartProvider>
+        </AdminNotificationsProvider>
       </ToastProvider>
     </AuthProvider>
   );
