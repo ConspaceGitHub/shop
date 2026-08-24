@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/useToast';
 import AdminHeader from '../../components/AdminHeader';
@@ -25,6 +25,8 @@ function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [savingTrackingId, setSavingTrackingId] = useState<string | null>(null);
+  const savingTrackingRef = useRef<Set<string>>(new Set());
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [dateFrom, setDateFrom] = useState('');
@@ -80,6 +82,33 @@ function AdminOrdersPage() {
       showToast(`訂單狀態已更新為「${statusLabel[status]}」`);
     }
     setUpdatingId(null);
+  }
+
+  function handleTrackingFieldChange(orderId: string, field: 'carrier' | 'tracking_number', value: string) {
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, [field]: value } : o)));
+  }
+
+  async function handleSaveTracking(order: OrderRow) {
+    if (savingTrackingRef.current.has(order.id)) return;
+    savingTrackingRef.current.add(order.id);
+    setSavingTrackingId(order.id);
+
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        carrier: order.carrier?.trim() || null,
+        tracking_number: order.tracking_number?.trim() || null,
+      })
+      .eq('id', order.id);
+
+    savingTrackingRef.current.delete(order.id);
+    setSavingTrackingId(null);
+
+    if (error) {
+      showToast(`物流資訊儲存失敗：${error.message}`, 'error');
+      return;
+    }
+    showToast('物流資訊已更新');
   }
 
   return (
@@ -198,6 +227,34 @@ function AdminOrdersPage() {
                       <span>NT$ {item.unit_price * item.quantity}</span>
                     </div>
                   ))}
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-end gap-3 border-t border-forest-50 pt-4">
+                  <div>
+                    <label className="mb-1 block text-xs text-forest-500">物流公司</label>
+                    <input
+                      value={order.carrier ?? ''}
+                      onChange={(e) => handleTrackingFieldChange(order.id, 'carrier', e.target.value)}
+                      placeholder="例如：黑貓宅急便"
+                      className="w-36 rounded-lg border border-forest-200 px-3 py-1.5 text-sm focus:border-forest-600 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-forest-500">追蹤單號</label>
+                    <input
+                      value={order.tracking_number ?? ''}
+                      onChange={(e) => handleTrackingFieldChange(order.id, 'tracking_number', e.target.value)}
+                      placeholder="例如：1234567890"
+                      className="w-44 rounded-lg border border-forest-200 px-3 py-1.5 text-sm focus:border-forest-600 focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleSaveTracking(order)}
+                    disabled={savingTrackingId === order.id}
+                    className="rounded-lg bg-forest-700 px-4 py-1.5 text-sm font-semibold text-white transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
+                  >
+                    {savingTrackingId === order.id ? '儲存中...' : '儲存物流資訊'}
+                  </button>
                 </div>
               </div>
             ))}

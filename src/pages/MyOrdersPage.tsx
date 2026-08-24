@@ -112,6 +112,25 @@ function MyOrdersPage() {
                       </div>
                     </div>
 
+                    {order.tracking_number && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-forest-50/60 px-3 py-2 text-sm">
+                        <span className="text-forest-600">
+                          🚚 {order.carrier ? `${order.carrier} ` : ''}
+                          追蹤單號：<span className="font-mono">{order.tracking_number}</span>
+                        </span>
+                        <a
+                          href={`https://www.google.com/search?q=${encodeURIComponent(
+                            `${order.carrier ?? ''} ${order.tracking_number} 查詢`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-forest-700 underline hover:text-forest-900"
+                        >
+                          查詢物流狀態 →
+                        </a>
+                      </div>
+                    )}
+
                     <div className="mt-3 space-y-1 border-t border-forest-50 pt-3">
                       {order.order_items.map((item) =>
                         item.products ? (

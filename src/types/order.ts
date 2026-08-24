@@ -31,6 +31,8 @@ export interface OrderRow {
   total_amount: number;
   discount_amount: number;
   coupon_code: string | null;
+  carrier: string | null;
+  tracking_number: string | null;
   created_at: string;
   order_items: OrderItemRow[];
 }
