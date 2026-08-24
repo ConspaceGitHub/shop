@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/useAuth';
+import AuthSubmitButton, { type SubmitState } from '../../components/AuthSubmitButton';
 
 function AdminLoginPage() {
   const { session, role, loading, signIn } = useAuth();
@@ -8,34 +9,46 @@ function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [status, setStatus] = useState<SubmitState>('idle');
+  const submittingRef = useRef(false);
 
-  if (!loading && session && role === 'admin') {
+  // status !== 'idle' 代表正在處理我們自己的登入成功動畫流程，
+  // 這時候不要讓這個 guard 搶先跳轉，不然畫面會被瞬間切走，動畫等於白做
+  if (!loading && session && role === 'admin' && status === 'idle') {
     return <Navigate to="/admin" replace />;
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    // ref 是同步更新的，就算按鈕被連續點擊好幾次，也只有第一次會真的送出請求
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+
     setError(null);
-    setSubmitting(true);
+    setStatus('submitting');
 
     const { error } = await signIn(email, password);
 
-    setSubmitting(false);
-
     if (error) {
       setError(error);
+      setStatus('idle');
+      submittingRef.current = false;
       return;
     }
 
-    navigate('/admin');
+    setStatus('success');
+    window.setTimeout(() => {
+      navigate('/admin');
+    }, 500);
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-sm space-y-4 rounded-lg border border-forest-100 bg-white p-8"
+        className={`w-full max-w-sm space-y-4 rounded-lg border border-forest-100 bg-white p-8 transition-all duration-300 ${
+          status === 'success' ? 'scale-[1.02] shadow-lg' : ''
+        }`}
       >
         <h1 className="text-xl font-bold text-forest-900">業者後台登入</h1>
 
@@ -46,7 +59,8 @@ function AdminLoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
+            disabled={status !== 'idle'}
+            className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none disabled:bg-forest-50"
           />
         </div>
 
@@ -57,19 +71,14 @@ function AdminLoginPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
+            disabled={status !== 'idle'}
+            className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none disabled:bg-forest-50"
           />
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full rounded-lg bg-forest-700 py-3 text-white font-semibold transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
-        >
-          {submitting ? '登入中...' : '登入'}
-        </button>
+        <AuthSubmitButton state={status} idleLabel="登入" submittingLabel="登入中..." successLabel="登入成功" />
       </form>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/useAuth';
@@ -56,6 +56,7 @@ function AccountPage() {
   const [profileForm, setProfileForm] = useState({ name: '', phone: '', birthday: '' });
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const savingProfileRef = useRef(false);
 
   useEffect(() => {
     async function load() {
@@ -149,6 +150,8 @@ function AccountPage() {
 
   async function handleProfileSave(e: FormEvent) {
     e.preventDefault();
+    if (savingProfileRef.current) return;
+
     setProfileError(null);
 
     if (!profileForm.name.trim() || !profileForm.phone.trim() || !profileForm.birthday) {
@@ -156,6 +159,7 @@ function AccountPage() {
       return;
     }
 
+    savingProfileRef.current = true;
     setSavingProfile(true);
 
     const { error } = await supabase
@@ -168,9 +172,11 @@ function AccountPage() {
       .eq('id', member!.id);
 
     setSavingProfile(false);
+    savingProfileRef.current = false;
 
     if (error) {
-      setProfileError(error.message);
+      // 不要把 Supabase/RLS 的原始錯誤內容直接顯示出來
+      setProfileError('儲存失敗，請稍後再試');
       return;
     }
 

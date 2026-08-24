@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/useAuth';
@@ -15,6 +15,7 @@ function MyOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const cancellingRef = useRef(false);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -39,13 +40,16 @@ function MyOrdersPage() {
   }, [session]);
 
   async function handleCancel(orderId: string) {
+    if (cancellingRef.current) return;
     if (!confirm('確定要取消這筆訂單嗎？')) return;
 
+    cancellingRef.current = true;
     setCancellingId(orderId);
     setCancelError(null);
 
     const { error } = await supabase.rpc('cancel_my_order', { p_order_id: orderId });
 
+    cancellingRef.current = false;
     setCancellingId(null);
 
     if (error) {

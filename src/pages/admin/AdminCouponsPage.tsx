@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/useToast';
 import AdminHeader from '../../components/AdminHeader';
@@ -64,6 +64,7 @@ function AdminCouponsPage() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const savingRef = useRef(false);
 
   async function fetchCoupons() {
     setLoading(true);
@@ -116,6 +117,8 @@ function AdminCouponsPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (savingRef.current) return;
+
     setFormError(null);
 
     const discountValue = Number(form.discountValue);
@@ -138,6 +141,7 @@ function AdminCouponsPage() {
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     const wasEditing = Boolean(editingId);
 
@@ -158,6 +162,7 @@ function AdminCouponsPage() {
       : await supabase.from('coupons').insert(payload);
 
     setSaving(false);
+    savingRef.current = false;
 
     if (error) {
       setFormError(error.message);

@@ -66,6 +66,7 @@ function AdminProductsPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
 
   async function fetchProducts() {
     setLoading(true);
@@ -148,6 +149,8 @@ function AdminProductsPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (savingRef.current) return;
+
     setFormError(null);
 
     const price = Number(form.price);
@@ -166,6 +169,7 @@ function AdminProductsPage() {
       return;
     }
 
+    savingRef.current = true;
     setSaving(true);
     const wasEditing = Boolean(editingId);
 
@@ -215,6 +219,7 @@ function AdminProductsPage() {
       setFormError(err instanceof Error ? err.message : '儲存失敗');
     } finally {
       setSaving(false);
+      savingRef.current = false;
     }
   }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { translateAuthError } from '../lib/authErrors';
 import { AuthContext, type MemberProfile, type Role } from './auth-context';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error ? error.message : null };
+    return { error: error ? translateAuthError(error.message) : null };
   }
 
   async function signUpMember({
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data, error } = await supabase.auth.signUp({ email, password });
 
     if (error) {
-      return { error: error.message };
+      return { error: translateAuthError(error.message) };
     }
 
     if (!data.user || !data.session) {
@@ -99,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     if (memberError) {
-      return { error: memberError.message };
+      return { error: '註冊會員資料時發生錯誤，請稍後再試' };
     }
 
     setSession(data.session);

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/useCart';
 import { useAuth } from '../context/useAuth';
@@ -21,6 +21,7 @@ function CheckoutPage() {
   const [selectedCouponId, setSelectedCouponId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (member) {
@@ -82,6 +83,9 @@ function CheckoutPage() {
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    // ref 是同步鎖定，避免連點「確認送出訂單」建立出好幾筆重複訂單、重複扣庫存
+    if (submittingRef.current) return;
+
     setError(null);
 
     if (!session || !member) {
@@ -94,11 +98,14 @@ function CheckoutPage() {
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
 
     const orderId = crypto.randomUUID();
 
-    const { error: orderError } = await supabase.rpc('place_order', {
+    // 價格、折扣金額都由後端用資料庫裡的真實數字重新計算，這裡傳的 unit_price
+    // 只是給後端做「商品是否存在」等基本檢查用，不會被拿來當作實際成交金額
+    const { data: result, error: orderError } = await supabase.rpc('place_order', {
       p_order_id: orderId,
       p_user_id: session.user.id,
       p_customer_name: form.name.trim(),
@@ -106,27 +113,28 @@ function CheckoutPage() {
       p_customer_phone: form.phone.trim() || null,
       p_shipping_address: form.address.trim(),
       p_coupon_code: selectedCoupon?.code ?? null,
-      p_discount_amount: discountAmount,
       p_items: items.map((item) => ({
         product_id: item.productId,
         quantity: item.quantity,
-        unit_price: item.price,
       })),
     });
 
     if (orderError) {
       setError(`建立訂單失敗：${orderError.message}`);
       setSubmitting(false);
+      submittingRef.current = false;
       return;
     }
+
+    const serverResult = result as { subtotal: number; discount_amount: number; total_amount: number };
 
     const summary = {
       orderId,
       customerName: form.name.trim(),
       items: items.map((item) => ({ name: item.name, price: item.price, quantity: item.quantity })),
-      totalPrice,
-      discountAmount,
-      finalTotal,
+      totalPrice: serverResult.subtotal,
+      discountAmount: serverResult.discount_amount,
+      finalTotal: serverResult.total_amount,
     };
 
     clearCart();
@@ -256,8 +264,18 @@ function CheckoutPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-xl bg-forest-700 py-3 font-semibold text-white transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-forest-700 py-3 font-semibold text-white transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
           >
+            {submitting && (
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+            )}
             {submitting ? '送出中...' : '確認送出訂單'}
           </button>
         </form>
