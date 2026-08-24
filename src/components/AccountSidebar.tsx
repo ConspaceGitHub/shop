@@ -6,6 +6,7 @@ import { useAuth } from '../context/useAuth';
 const navItems = [
   { to: '/account', label: '會員中心' },
   { to: '/orders', label: '我的訂單' },
+  { to: '/my-plants', label: '我的植物' },
 ];
 
 function AccountSidebar() {

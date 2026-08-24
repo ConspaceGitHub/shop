@@ -14,6 +14,7 @@ import OrderSuccessPage from './pages/OrderSuccessPage';
 import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import MyOrdersPage from './pages/MyOrdersPage';
+import MyPlantsPage from './pages/MyPlantsPage';
 import AccountPage from './pages/AccountPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
@@ -96,6 +97,14 @@ function App() {
               element={
                 <ProtectedMemberRoute>
                   <AccountPage />
+                </ProtectedMemberRoute>
+              }
+            />
+            <Route
+              path="/my-plants"
+              element={
+                <ProtectedMemberRoute>
+                  <MyPlantsPage />
                 </ProtectedMemberRoute>
               }
             />

@@ -20,6 +20,7 @@ interface LowStockProduct {
   id: string;
   name: string;
   stock: number;
+  daysLeft: number | null;
 }
 
 interface RecentMember {
@@ -114,7 +115,36 @@ function AdminDashboardPage() {
       }
       setWeeklyTrend(buckets.map((v, i) => ({ label: `第${i + 1}週`, value: v })));
 
-      setLowStockProducts((lowStockRes.data as LowStockProduct[]) ?? []);
+      const lowStock = (lowStockRes.data as Array<{ id: string; name: string; stock: number }>) ?? [];
+
+      // 智慧補貨建議：抓低庫存商品過去 30 天的銷售明細，
+      // 用平均每日銷量估算「大約還可以撐幾天」
+      if (lowStock.length > 0) {
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: velocityData } = await supabase
+          .from('order_items')
+          .select('product_id, quantity, orders!inner(status, created_at)')
+          .in('product_id', lowStock.map((p) => p.id))
+          .in('orders.status', SALE_STATUSES)
+          .gte('orders.created_at', thirtyDaysAgo);
+
+        const soldByProduct = new Map<string, number>();
+        for (const row of (velocityData as Array<{ product_id: string; quantity: number }>) ?? []) {
+          soldByProduct.set(row.product_id, (soldByProduct.get(row.product_id) ?? 0) + row.quantity);
+        }
+
+        setLowStockProducts(
+          lowStock.map((p) => {
+            const soldIn30Days = soldByProduct.get(p.id) ?? 0;
+            const dailyRate = soldIn30Days / 30;
+            const daysLeft = dailyRate > 0 ? Math.floor(p.stock / dailyRate) : null;
+            return { ...p, daysLeft };
+          })
+        );
+      } else {
+        setLowStockProducts([]);
+      }
+
       setRecentOrders((recentOrdersRes.data as RecentOrder[]) ?? []);
       setRecentMembers((recentMembersRes.data as RecentMember[]) ?? []);
 
@@ -245,12 +275,23 @@ function AdminDashboardPage() {
                         className="flex items-center justify-between rounded-xl border border-terracotta-400/40 bg-white p-4 transition hover:shadow-sm"
                       >
                         <span className="text-sm text-forest-800">{p.name}</span>
-                        <span
-                          className={`text-sm font-semibold ${
-                            p.stock === 0 ? 'text-red-600' : 'text-terracotta-600'
-                          }`}
-                        >
-                          剩 {p.stock} 件
+                        <span className="flex items-center gap-2">
+                          {p.daysLeft !== null && (
+                            <span
+                              className={`text-xs font-medium ${
+                                p.daysLeft <= 7 ? 'text-red-500' : 'text-forest-400'
+                              }`}
+                            >
+                              約 {p.daysLeft} 天後缺貨
+                            </span>
+                          )}
+                          <span
+                            className={`text-sm font-semibold ${
+                              p.stock === 0 ? 'text-red-600' : 'text-terracotta-600'
+                            }`}
+                          >
+                            剩 {p.stock} 件
+                          </span>
                         </span>
                       </Link>
                     ))}

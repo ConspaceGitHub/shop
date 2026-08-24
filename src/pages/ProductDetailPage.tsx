@@ -35,6 +35,8 @@ function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [soldToday, setSoldToday] = useState(0);
 
   useEffect(() => {
     if (!justAdded) return;
@@ -75,6 +77,60 @@ function ProductDetailPage() {
 
     if (id) fetchProduct();
   }, [id]);
+
+  // 即時瀏覽人數：用 Supabase Realtime 的 Presence 功能，
+  // 追蹤目前有幾個瀏覽器分頁正開著同一個商品頁面
+  useEffect(() => {
+    if (!product) return;
+
+    const channel = supabase.channel(`product-views:${product.id}`, {
+      config: { presence: { key: crypto.randomUUID() } },
+    });
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        setViewerCount(Object.keys(state).length);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // 只依賴 product?.id：product 物件本身只會在同一個商品重新載入時整包換掉，
+    // id 不變就不需要重新訂閱 presence channel
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
+
+  // 今日銷量：查詢今天已成立（已付款/已出貨/已完成）的訂單裡，這個商品賣了幾件
+  useEffect(() => {
+    if (!product) return;
+
+    async function fetchSoldToday() {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const { data } = await supabase
+        .from('order_items')
+        .select('quantity, orders!inner(status, created_at)')
+        .eq('product_id', product!.id)
+        .in('orders.status', ['paid', 'shipped', 'completed'])
+        .gte('orders.created_at', todayStart.toISOString());
+
+      const total = ((data as Array<{ quantity: number }>) ?? []).reduce(
+        (sum, item) => sum + item.quantity,
+        0
+      );
+      setSoldToday(total);
+    }
+
+    fetchSoldToday();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product?.id]);
 
   if (loading) {
     return (
@@ -129,6 +185,21 @@ function ProductDetailPage() {
               </p>
             ) : (
               <p className="mt-2 text-sm font-medium text-forest-600">現貨供應中</p>
+            )}
+
+            {(viewerCount >= 2 || soldToday > 0) && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {viewerCount >= 2 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-terracotta-50 px-3 py-1 text-xs font-medium text-terracotta-600">
+                    🔥 目前有 {viewerCount} 人正在看
+                  </span>
+                )}
+                {soldToday > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-forest-50 px-3 py-1 text-xs font-medium text-forest-600">
+                    ✨ 今天已售出 {soldToday} 件
+                  </span>
+                )}
+              </div>
             )}
 
             {product.description && (
