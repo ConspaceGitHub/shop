@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/useAuth';
@@ -39,13 +39,32 @@ function daysAgoLabel(iso: string | null): string {
   return `${days} 天前`;
 }
 
+function safeFileExtension(fileName: string): string {
+  const idx = fileName.lastIndexOf('.');
+  if (idx === -1) return '';
+  // Supabase Storage 的 key 不接受中文等非 ASCII 字元，檔名只取副檔名裡的英數字部分，
+  // 原始檔名（含中文）完全不放進路徑，避免 "Invalid key" 錯誤
+  const ext = fileName.slice(idx + 1).replace(/[^a-zA-Z0-9]/g, '');
+  return ext ? `.${ext}` : '';
+}
+
+function storagePathFromPlantPhotoUrl(photoUrl: string): string | null {
+  const marker = '/plant-photos/';
+  const idx = photoUrl.indexOf(marker);
+  if (idx === -1) return null;
+  return photoUrl.slice(idx + marker.length);
+}
+
 function MyPlantsPage() {
   const { session } = useAuth();
   const { showToast } = useToast();
   const [plants, setPlants] = useState<PlantProduct[]>([]);
   const [lastLogs, setLastLogs] = useState<Map<string, string>>(new Map());
+  const [customPhotos, setCustomPhotos] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const uploadingRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -87,22 +106,34 @@ function MyPlantsPage() {
       setPlants(uniquePlants);
 
       if (uniquePlants.length > 0) {
-        const { data: logsData } = await supabase
-          .from('plant_care_logs')
-          .select('product_id, event_type, logged_at')
-          .eq('user_id', session.user.id)
-          .in(
-            'product_id',
-            uniquePlants.map((p) => p.id)
-          )
-          .order('logged_at', { ascending: false });
+        const productIds = uniquePlants.map((p) => p.id);
+
+        const [logsRes, photosRes] = await Promise.all([
+          supabase
+            .from('plant_care_logs')
+            .select('product_id, event_type, logged_at')
+            .eq('user_id', session.user.id)
+            .in('product_id', productIds)
+            .order('logged_at', { ascending: false }),
+          supabase
+            .from('member_plant_photos')
+            .select('product_id, photo_url')
+            .eq('user_id', session.user.id)
+            .in('product_id', productIds),
+        ]);
 
         const latest = new Map<string, string>();
-        for (const log of (logsData as Array<{ product_id: string; event_type: string; logged_at: string }>) ?? []) {
+        for (const log of (logsRes.data as Array<{ product_id: string; event_type: string; logged_at: string }>) ?? []) {
           const key = `${log.product_id}:${log.event_type}`;
           if (!latest.has(key)) latest.set(key, log.logged_at);
         }
         setLastLogs(latest);
+
+        const photos = new Map<string, string>();
+        for (const row of (photosRes.data as Array<{ product_id: string; photo_url: string }>) ?? []) {
+          photos.set(row.product_id, row.photo_url);
+        }
+        setCustomPhotos(photos);
       }
 
       setLoading(false);
@@ -136,6 +167,90 @@ function MyPlantsPage() {
     showToast(`已記錄${eventMeta[eventType].label}`);
   }
 
+  async function handlePhotoChange(productId: string, e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !session) return;
+    // Set 是同步鎖定，避免同一張卡片被連續選檔觸發多次上傳
+    if (uploadingRef.current.has(productId)) return;
+    uploadingRef.current.add(productId);
+    setUploadingId(productId);
+
+    const path = `${session.user.id}/${productId}-${crypto.randomUUID()}${safeFileExtension(file.name)}`;
+    const { error: uploadError } = await supabase.storage.from('plant-photos').upload(path, file);
+
+    if (uploadError) {
+      console.error('[plant photo] storage upload failed:', uploadError);
+      showToast('照片上傳失敗，請稍後再試', 'error');
+      uploadingRef.current.delete(productId);
+      setUploadingId(null);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage.from('plant-photos').getPublicUrl(path);
+    const oldPhotoUrl = customPhotos.get(productId) ?? null;
+
+    const { error: upsertError } = await supabase
+      .from('member_plant_photos')
+      .upsert(
+        {
+          user_id: session.user.id,
+          product_id: productId,
+          photo_url: publicUrlData.publicUrl,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,product_id' }
+      );
+
+    if (upsertError) {
+      console.error('[plant photo] db upsert failed:', upsertError);
+      showToast('照片儲存失敗，請稍後再試', 'error');
+      await supabase.storage.from('plant-photos').remove([path]);
+      uploadingRef.current.delete(productId);
+      setUploadingId(null);
+      return;
+    }
+
+    if (oldPhotoUrl) {
+      const oldPath = storagePathFromPlantPhotoUrl(oldPhotoUrl);
+      if (oldPath) await supabase.storage.from('plant-photos').remove([oldPath]);
+    }
+
+    setCustomPhotos((prev) => new Map(prev).set(productId, publicUrlData.publicUrl));
+    uploadingRef.current.delete(productId);
+    setUploadingId(null);
+    showToast('照片已更新');
+  }
+
+  async function handleRemovePhoto(productId: string) {
+    const photoUrl = customPhotos.get(productId);
+    if (!session || !photoUrl || uploadingRef.current.has(productId)) return;
+    uploadingRef.current.add(productId);
+    setUploadingId(productId);
+
+    const { error } = await supabase
+      .from('member_plant_photos')
+      .delete()
+      .eq('user_id', session.user.id)
+      .eq('product_id', productId);
+
+    if (error) {
+      showToast('刪除失敗，請稍後再試', 'error');
+    } else {
+      const path = storagePathFromPlantPhotoUrl(photoUrl);
+      if (path) await supabase.storage.from('plant-photos').remove([path]);
+      setCustomPhotos((prev) => {
+        const next = new Map(prev);
+        next.delete(productId);
+        return next;
+      });
+      showToast('已恢復預設照片');
+    }
+
+    uploadingRef.current.delete(productId);
+    setUploadingId(null);
+  }
+
   return (
     <div className="min-h-screen bg-cream">
       <Header back={{ to: '/', label: '返回商品列表' }} />
@@ -163,57 +278,93 @@ function MyPlantsPage() {
 
             {!loading && plants.length > 0 && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {plants.map((plant) => (
-                  <div key={plant.id} className="rounded-xl border border-forest-100 bg-white p-5">
-                    <div className="flex gap-3">
-                      {plant.imageUrl ? (
-                        <img
-                          src={plant.imageUrl}
-                          alt={plant.name}
-                          className="h-16 w-16 shrink-0 rounded-lg border border-forest-100 object-cover"
-                        />
-                      ) : (
-                        <ImagePlaceholder className="h-16 w-16 shrink-0 rounded-lg border border-forest-100" />
-                      )}
-                      <div className="min-w-0">
-                        <Link
-                          to={`/products/${plant.id}`}
-                          className="font-display font-semibold text-forest-900 hover:underline"
-                        >
-                          {plant.name}
-                        </Link>
-                        <p className="mt-1 text-xs text-forest-400">
-                          {careTip[plant.careDifficulty ?? ''] ?? defaultCareTip}
-                        </p>
+                {plants.map((plant) => {
+                  const photoUrl = customPhotos.get(plant.id) ?? plant.imageUrl;
+                  const isUploading = uploadingId === plant.id;
+                  const inputId = `plant-photo-input-${plant.id}`;
+
+                  return (
+                    <div key={plant.id} className="rounded-xl border border-forest-100 bg-white p-5">
+                      <div className="flex gap-3">
+                        <div className="group relative h-20 w-20 shrink-0">
+                          {photoUrl ? (
+                            <img
+                              src={photoUrl}
+                              alt={plant.name}
+                              className="h-20 w-20 rounded-lg border border-forest-100 object-cover"
+                            />
+                          ) : (
+                            <ImagePlaceholder className="h-20 w-20 rounded-lg border border-forest-100" />
+                          )}
+
+                          <input
+                            id={inputId}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={isUploading}
+                            onChange={(e) => handlePhotoChange(plant.id, e)}
+                          />
+                          <label
+                            htmlFor={inputId}
+                            title="編輯我的照片"
+                            className={`absolute -bottom-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-forest-700 text-xs text-white shadow transition hover:bg-forest-800 ${
+                              isUploading ? 'cursor-not-allowed opacity-60' : 'cursor-pointer active:scale-95'
+                            }`}
+                          >
+                            {isUploading ? '…' : '📷'}
+                          </label>
+                        </div>
+
+                        <div className="min-w-0">
+                          <Link
+                            to={`/products/${plant.id}`}
+                            className="font-display font-semibold text-forest-900 hover:underline"
+                          >
+                            {plant.name}
+                          </Link>
+                          <p className="mt-1 text-xs text-forest-400">
+                            {careTip[plant.careDifficulty ?? ''] ?? defaultCareTip}
+                          </p>
+                          {customPhotos.has(plant.id) && (
+                            <button
+                              onClick={() => handleRemovePhoto(plant.id)}
+                              disabled={isUploading}
+                              className="mt-1 text-xs text-forest-400 underline transition hover:text-forest-600 disabled:opacity-50"
+                            >
+                              恢復預設照片
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-4 space-y-2">
+                        {(Object.keys(eventMeta) as EventType[]).map((eventType) => {
+                          const key = `${plant.id}:${eventType}`;
+                          const meta = eventMeta[eventType];
+                          return (
+                            <div
+                              key={eventType}
+                              className="flex items-center justify-between rounded-lg bg-forest-50/60 px-3 py-2"
+                            >
+                              <span className="text-sm text-forest-700">
+                                {meta.icon} {meta.label}：
+                                <span className="text-forest-500">{daysAgoLabel(lastLogs.get(key) ?? null)}</span>
+                              </span>
+                              <button
+                                onClick={() => handleLog(plant.id, eventType)}
+                                disabled={savingKey === key}
+                                className="rounded-lg bg-forest-700 px-3 py-1 text-xs font-semibold text-white transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
+                              >
+                                {savingKey === key ? '紀錄中...' : meta.actionLabel}
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-
-                    <div className="mt-4 space-y-2">
-                      {(Object.keys(eventMeta) as EventType[]).map((eventType) => {
-                        const key = `${plant.id}:${eventType}`;
-                        const meta = eventMeta[eventType];
-                        return (
-                          <div
-                            key={eventType}
-                            className="flex items-center justify-between rounded-lg bg-forest-50/60 px-3 py-2"
-                          >
-                            <span className="text-sm text-forest-700">
-                              {meta.icon} {meta.label}：
-                              <span className="text-forest-500">{daysAgoLabel(lastLogs.get(key) ?? null)}</span>
-                            </span>
-                            <button
-                              onClick={() => handleLog(plant.id, eventType)}
-                              disabled={savingKey === key}
-                              className="rounded-lg bg-forest-700 px-3 py-1 text-xs font-semibold text-white transition active:scale-95 hover:bg-forest-800 disabled:cursor-not-allowed disabled:bg-forest-200"
-                            >
-                              {savingKey === key ? '紀錄中...' : meta.actionLabel}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

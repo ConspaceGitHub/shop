@@ -47,6 +47,14 @@ const emptyForm: FormState = {
   stock: '',
 };
 
+function safeFileExtension(fileName: string): string {
+  const idx = fileName.lastIndexOf('.');
+  if (idx === -1) return '';
+  // Supabase Storage 的 key 不接受中文等非 ASCII 字元，檔名只取副檔名裡的英數字部分
+  const ext = fileName.slice(idx + 1).replace(/[^a-zA-Z0-9]/g, '');
+  return ext ? `.${ext}` : '';
+}
+
 function storagePathFromUrl(imageUrl: string): string | null {
   const marker = '/product-images/';
   const idx = imageUrl.indexOf(marker);
@@ -126,7 +134,7 @@ function AdminProductsPage() {
   async function uploadImages(productId: string, startOrder: number) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const path = `${productId}/${crypto.randomUUID()}-${file.name}`;
+      const path = `${productId}/${crypto.randomUUID()}${safeFileExtension(file.name)}`;
 
       const { error: uploadError } = await supabase.storage.from('product-images').upload(path, file);
       if (uploadError) {
@@ -268,6 +276,8 @@ function AdminProductsPage() {
     return <div className="p-10 text-center text-red-500">讀取商品失敗：{error}</div>;
   }
 
+  const editingProduct = editingId ? products.find((p) => p.id === editingId) : null;
+
   return (
     <div className="min-h-screen bg-cream">
       <AdminHeader />
@@ -387,6 +397,34 @@ function AdminProductsPage() {
               className="w-full rounded-lg border border-forest-200 px-3 py-2 focus:border-forest-600 focus:outline-none"
             />
           </div>
+
+          {editingProduct && editingProduct.product_images.length > 0 && (
+            <div>
+              <label className="mb-2 block text-sm text-forest-700">目前已上傳的圖片</label>
+              <div className="flex flex-wrap gap-3">
+                {editingProduct.product_images
+                  .slice()
+                  .sort((a, b) => a.display_order - b.display_order)
+                  .map((img) => (
+                    <div key={img.id} className="relative">
+                      <img
+                        src={img.image_url}
+                        alt=""
+                        className="h-32 w-32 rounded-lg border border-forest-100 object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteImage(img)}
+                        className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-sm text-white shadow"
+                        title="刪除圖片"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="mb-1 block text-sm text-forest-700">
