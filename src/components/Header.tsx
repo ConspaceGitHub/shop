@@ -4,11 +4,26 @@ import { useAuth } from '../context/useAuth';
 
 interface HeaderProps {
   back?: { to: string; label: string };
+  // 登入/註冊頁專用：全站都要求會員登入，導覽列上的首頁、關於我們、購物車其實都會
+  // 因為 ProtectedMemberRoute 又被導回這裡，顯示出來只會讓人困惑，所以只留品牌標誌
+  minimal?: boolean;
 }
 
-function Header({ back }: HeaderProps) {
+function Header({ back, minimal }: HeaderProps) {
   const { totalItems } = useCart();
   const { member, signOut } = useAuth();
+
+  if (minimal) {
+    return (
+      <header className="sticky top-0 z-10 border-b border-forest-100 bg-cream/90 backdrop-blur">
+        <div className="mx-auto max-w-6xl px-6 py-5">
+          <span className="font-display text-xl font-semibold tracking-tight text-forest-800">
+            🌿 南都植意塊根多肉
+          </span>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-10 border-b border-forest-100 bg-cream/90 backdrop-blur">

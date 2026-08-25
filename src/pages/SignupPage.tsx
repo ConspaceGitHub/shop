@@ -65,7 +65,7 @@ function SignupPage() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <Header />
+      <Header minimal />
 
       <main className="mx-auto max-w-md px-6 py-12">
         <h1 className="mb-6 font-display text-2xl font-bold text-forest-900">加入會員</h1>
