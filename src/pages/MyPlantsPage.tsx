@@ -171,6 +171,16 @@ function MyPlantsPage() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file || !session) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('請選擇圖片檔案', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('圖片檔案不能超過 5MB', 'error');
+      return;
+    }
+
     // Set 是同步鎖定，避免同一張卡片被連續選檔觸發多次上傳
     if (uploadingRef.current.has(productId)) return;
     uploadingRef.current.add(productId);

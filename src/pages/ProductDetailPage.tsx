@@ -111,21 +111,10 @@ function ProductDetailPage() {
     if (!product) return;
 
     async function fetchSoldToday() {
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
-      const { data } = await supabase
-        .from('order_items')
-        .select('quantity, orders!inner(status, created_at)')
-        .eq('product_id', product!.id)
-        .in('orders.status', ['paid', 'shipped', 'completed'])
-        .gte('orders.created_at', todayStart.toISOString());
-
-      const total = ((data as Array<{ quantity: number }>) ?? []).reduce(
-        (sum, item) => sum + item.quantity,
-        0
-      );
-      setSoldToday(total);
+      // 一般會員的 order_items RLS 只能看到自己的訂單，沒辦法直接加總全站銷量，
+      // 所以改呼叫後端的 get_today_sold_count()，只回傳一個數字，不洩漏其他人訂單細節
+      const { data } = await supabase.rpc('get_today_sold_count', { p_product_id: product!.id });
+      setSoldToday((data as number) ?? 0);
     }
 
     fetchSoldToday();

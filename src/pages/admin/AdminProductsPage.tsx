@@ -128,7 +128,15 @@ function AdminProductsPage() {
   }
 
   function handleFilesChange(e: ChangeEvent<HTMLInputElement>) {
-    setFiles(e.target.files ? Array.from(e.target.files) : []);
+    const selected = e.target.files ? Array.from(e.target.files) : [];
+    const valid = selected.filter((f) => f.type.startsWith('image/') && f.size <= 5 * 1024 * 1024);
+
+    if (valid.length < selected.length) {
+      setFormError('部分檔案不是圖片或超過 5MB，已略過');
+    } else {
+      setFormError(null);
+    }
+    setFiles(valid);
   }
 
   async function uploadImages(productId: string, startOrder: number) {
